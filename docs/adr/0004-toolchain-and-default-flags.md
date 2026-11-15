@@ -1,6 +1,6 @@
 # ADR-0004: XDK 5558.2 VC71 under wibo, default /O2 /G7 /arch:SSE
 
-- **Status:** Accepted (M0 passed 2026-10-10)
+- **Status:** Accepted (M0 passed 2026-10-10); the default flags are amended by ADR-0017
 - **Date:** 2026-10-10
 
 ## Context

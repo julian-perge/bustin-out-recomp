@@ -61,7 +61,7 @@ The virtual base's own vtable is 0x002E38F4. 18 functions reference it, among th
 
 ### R3. Three classes, each in one source file
 
-Order: class 1, class 2, class 3. Each class is one matcher run and one reviewer run, as in `docs/WORKFLOW.md`, "Matching". Default flags (ADR-0004).
+Order: class 1, class 2, class 3. Each class is one matcher run and one reviewer run, as in `docs/WORKFLOW.md`, "Matching". Default flags (ADR-0004, ADR-0017).
 
 | Class | Source | Required functions |
 |---|---|---|
@@ -119,7 +119,7 @@ Order: class 1, class 2, class 3. Each class is one matcher run and one reviewer
 
 ## Tech stack
 
-VC71 `CL.Exe` under wibo with `/O2 /G7 /arch:SSE` (ADR-0004). Python with uv. Ghidra 12.2 through ghidra-mcp, read-only for matcher and reviewer (ADR-0003).
+VC71 `CL.Exe` under wibo with `/O2 /G7 /arch:SSE /GX` (ADR-0004, ADR-0017). Python with uv. Ghidra 12.2 through ghidra-mcp, read-only for matcher and reviewer (ADR-0003).
 
 ## Commands
 
