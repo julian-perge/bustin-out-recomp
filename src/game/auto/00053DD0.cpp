@@ -22,10 +22,6 @@ class Unk_00053DD0;
 
 extern Unk_00053DD0* DAT_003106A0;
 
-// 0x000136D0 is the operator new of the game. The symbol list does not name it yet, so it is
-// called through the class's own operator new.
-void* FUN_000136D0(unsigned int size);
-
 // An object of 0x14 bytes that the constructor makes with operator new.
 struct Pool_00053DD0
 {
@@ -36,8 +32,6 @@ struct Pool_00053DD0
         unk10 = 1;
         unk4 = 0;
     }
-
-    void* operator new(unsigned int size) { return FUN_000136D0(size); }
 
     int unk0;
     int unk4;

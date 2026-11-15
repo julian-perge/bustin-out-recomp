@@ -167,7 +167,7 @@ address	kind	size	name	tier	evidence
 0x000133F0	function	685	FUN_000133f0	auto	
 0x000136A0	function	16	FUN_000136a0	auto	
 0x000136C0	function	5	thunk_FUN_00123040_000136C0	auto	
-0x000136D0	function	16	FUN_000136d0	auto	
+0x000136D0	function	16	??2@YAPAXI@Z	matched	src/game/auto/000136D0.cpp
 0x000136E0	function	5	??3@YAXPAX@Z	matched	src/game/auto/000136E0.cpp
 0x000136F0	function	41	FUN_000136f0	auto	
 0x00013720	function	3	FUN_00013720	auto	
