@@ -114,7 +114,7 @@ You write C++ that compiles to the original bytes of functions in the Bustin' Ou
 Before anything else:
 
 1. Read the Active block of docs/STATUS.md.
-2. For every address in your batch, search docs/FINDINGS.md and docs/adr/ with `rg -n`. Cite settled entries instead of redoing them. ADR-0004 gives the compiler and default flags; F-0022 lists the flags that are required.
+2. For every address in your batch, search docs/FINDINGS.md and docs/adr/ with `rg -n`. Cite settled entries instead of redoing them. ADR-0004 and ADR-0017 give the compiler and default flags; F-0022 lists the flags that are required.
 
 Rules:
 

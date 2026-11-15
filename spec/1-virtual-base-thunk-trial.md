@@ -61,7 +61,7 @@ The virtual base's own vtable is 0x002E38F4. 18 functions reference it, among th
 
 ### R3. Three classes, each in one source file
 
-Order: class 1, class 2, class 3. Each class is one matcher run and one reviewer run, as in `docs/WORKFLOW.md`, "Matching". Default flags (ADR-0004).
+Order: class 1, class 2, class 3. Each class is one matcher run and one reviewer run, as in `docs/WORKFLOW.md`, "Matching". Default flags (ADR-0004, ADR-0017).
 
 | Class | Source | Required functions |
 |---|---|---|
