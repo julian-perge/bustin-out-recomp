@@ -17,7 +17,7 @@ The milestone table and the handoff to the next session. After each batch, repla
 ## Active
 
 <!-- active:start -->
-- Branch: `main`. Pull request #11 for issue #2 came in as one squash commit, 067ddf7, after the review of 2026-11-15 found no blocker. The branch `chore/2-create-purecall-and-0003c620-functions` still exists. No worktrees.
+- Branch: `main`. Pull request #11 for issue #2 came in as one squash commit, 067ddf7, after the review of 2026-11-15 found no blocker. No worktrees.
 - Running: the ghidra-mcp headless server on port 8089, started again by the lead session on 2026-11-14 after the delink for issue #2. It runs on Ghidra 12.2 with ghidra-mcp built from the `dev` branch at 5f6c416f.
 - Owners: lead. Ghidra writer: none.
 - Blockers: none.
