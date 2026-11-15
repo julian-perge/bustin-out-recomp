@@ -4,7 +4,7 @@ The trial is issue #1, with the spec `spec/1-virtual-base-thunk-trial.md`. It de
 
 ## Outcome
 
-Not decided. Classes 1, 2 and 3 are whole: the 10 required functions of class 1, the 13 of class 2 and the 9 of class 3 are `matched`, and no function has a blocker, so the stop rule (R6) stops nothing. The callers batch has not run. The constructors need `/GX`, and the default flags gained it after the probe (F-0088, ADR-0017).
+Not decided. Classes 1, 2 and 3 are whole: the 10 required functions of class 1, the 13 of class 2 and the 9 of class 3 are `matched`, and no function has a blocker, so the stop rule (R6) stops nothing. The constructors need `/GX`, and the default flags gained it after the probe (F-0088, ADR-0017). The callers batch matched 18 of its 20 functions at 32,848 tokens per matched function, which is more than batch 3's 7,557. 0x00137AF0, one of the 47 of F-0080, is `matched`, but it is not a vtable store (F-0102). Issue #10 writes the outcome.
 
 ## Batches
 
@@ -16,9 +16,9 @@ Tokens are the total of the matcher and the reviewer. M4 batch 3 is the comparis
 | 2026-11-15 | Class 1 (issue #6) | 10 | 10 | 0 | 0 | 297,865 | 29,787 | 2,031 | 147 | clean |
 | 2026-11-15 | Class 2 (issue #7) | 13 | 13 | 0 | 0 | 351,204 | 27,016 | 1,990 | 176 | clean |
 | 2026-11-15 | Class 3 (issue #8) | 9 | 9 | 0 | 0 | 316,276 | 35,142 | 823 | 384 | clean |
-| | Callers (issue #9) | 20 | | | | | | | | |
+| 2026-11-15 | Callers (issue #9) | 20 | 18 | 0 | 2 | 591,258 | 32,848 | 1,737 | 340 | not clean, clean after the lead applied its forms |
 
-The rows of classes 1 and 2 do not hold the whole cost of their class. The matcher matched 9 of the 10 functions of class 1 and 11 of the 13 of class 2, and the lead session matched the rest. The matcher matched all 9 of class 3, and the lead session changed the tool and the form of one function. A lead session's tokens are not measured, so they are not in the rows. See "Class 1", "Class 2" and "Class 3" below.
+The rows of classes 1 and 2 do not hold the whole cost of their class. The matcher matched 9 of the 10 functions of class 1 and 11 of the 13 of class 2, and the lead session matched the rest. The matcher matched all 9 of class 3, and the lead session changed the tool and the form of one function. The matcher matched 17 of the 20 functions of the callers batch, and the lead session applied the reviewer's forms, which matched 0x000E3280. A lead session's tokens are not measured, so they are not in the rows. See "Class 1", "Class 2", "Class 3" and "Callers" below.
 
 ## Class 1 (issue #6, 2026-11-15)
 
@@ -75,6 +75,27 @@ The source is `src/game/auto/000A80B0.cpp`, with the shared header unchanged. Th
 - **0x0008FB70:** a `generated` line for it gives `error`, so the object does not emit it.
 - **Reviewer:** the source holds nothing that VC71 generates (ADR-0013), and the overrides are in slot order with the parameter counts of the binary. The reviewer compiled the other form of each claim of the matcher about a source form, and each claim holds. The matcher had not tried a `switch` in `SetMode`. The reviewer read commit aeaecae. The later commits put in the `switch` that the reviewer compiled, change the tool with its tests, and replace the bodies with `declared` lines. The 9 rows stay `matched` after each of them.
 - **Guesses in the sources:** the class name and the member names, the types behind +0x24AC, +0x24B4 and +0x24C4, the stand-in classes, the size of `S_00145A00` and the last 3 bytes of each menu, the parameter types of the menu methods, and the nested `if` of the last branch of `SetMode`. The match shows only that sizes, offsets and addresses agree (F-0069).
+
+## Callers (issue #9, 2026-11-15)
+
+The sources are 19 new files in `src/game/auto/`, with the shared header. 18 of the 20 functions are `matched`, 1,737 bytes without padding, and 2 are parked. Beside the batch, 0x00137AF0, the deleting destructors 0x00053EE0 and 0x000BDAF0, and the thunks 0x00053D00 and 0x000BD8D0 that jump to them are `matched`. The extras 0x000AF780, 0x00026190 and 0x00026290 are `matched` too, and so is operator new 0x000136D0, which the lead matched for 0x00053DD0. 3363 functions are matched in all, 27 more than before. No function moved from `src/game/trivial/`, and the 32 required functions of classes 1 to 3 stay `matched`.
+
+| Run | Tokens | Result |
+|---|---:|---|
+| Matcher | 395,928 | 17 matched (1,634 bytes). 0x000BD710 parked as `scheduling` at 79.9%, 0x000E3280 as `scheduling` at 67.0%, and 0x00017D10 as `unclassified` at 97.0%. |
+| Reviewer | 195,330 | Not clean. 0x000E3280 matches with the donor's `EVec2(float)`. The member destructor of 0x000929C0 and the class `operator new` of 0x00053DD0 only steer the compiler. 0x000BD710 stays parked, at 83.7% in a form of the reviewer's. |
+| Lead | not measured | The reviewer's forms, applied in four commits: 0x000E3280 `matched`, a member struct in 0x000929C0, operator new 0x000136D0 matched and named `??2@YAPAXI@Z`, the global `new` in 0x00053DD0, and the 83.7% form of 0x000BD710. |
+
+For the 17 functions of the matcher run alone, the 591,258 tokens are 34,780 per matched function and 362 per matched byte.
+
+- **Blockers:** 0x000BD710 is parked as `scheduling` at 83.7%. Its stores come in the original's order, and the original clears xmm0 before it loads the constant into xmm1 (F-0107). 0x00017D10 is parked as `unclassified` at 97.0%. Its unit holds 3 bytes of code at 0x00017D70 that no function starts, and its own 96 bytes are equal (F-0108).
+- **0x00137AF0:** `matched` from `src/game/auto/00137AF0.cpp`. It writes the address 0x0035DC1C into the member at +0x18 of `UnkTargetBase` and returns nothing, so it is neither a vtable store nor a constructor (F-0102). Its match needs the header only for the name of its class, so it shows no gain from the shared bases.
+- **0x000E3280:** the matcher parked it after about 30 forms of four `float` members. The donor's `EVec2(float value) { x = y = value; }` stores y first, and two `EVec2` members give the original's order. The donor's form was not compiled before the park, the same miss as in F-0093.
+- **Header:** four additions and no change of a layout or of a base slot. `EVec2` has the donor's `EVec2(float)`. `UnkTargetBase` declares 0x00124810. The member at +0x18 is `UnkTargetText`, 4 bytes as before. `S_00145A00` moved from `src/game/auto/000A80B0.cpp`, with the 31 slots of its vtable 0x002ED510 (F-0100).
+- **Forms the review settled:** a member struct that holds the class of 0x00127860 in 0x000929C0 (F-0105), the global `new` (F-0103), a class `operator delete` that calls 0x00123040 (pass, F-0106), and `throw()` on the destructor of the array member in 0x000E3200 and 0x0007CFB0 (pass with a better form named, F-0104). 0x000E3280 and 0x000F0DE0 repeat the inline base `Dialog_000E31C0`, and the reviewer showed that one shared declaration gives the same bytes. The sources keep the copies.
+- **Reviewer:** the 18 matches are credible, and the sources hold nothing that VC71 generates (ADR-0013). The reviewer read commit 9102aa0. The lead's four commits after it put in the reviewer's forms, with one change: the member struct of 0x000929C0 has an implicit destructor, where the reviewer compiled `~Tracked_000929C0() {}`. Both give the same bytes.
+- **Tokens:** the headless runner stopped the matcher once, and the lead resumed it in the same context. The matcher's figure is its total at the end of the resumed run, the measure that the earlier rows use. The reviewer's figure includes one short reply to the lead.
+- **Guesses in the sources:** every class name and member name, the sizes of the `pad` arrays, the types of the stand-in classes such as `Pool_00053DD0`, `Tag_00139550` and `PanelChild_000BD710`, the 8 parameter types of the constructor that 0x000BD710 calls, `unsigned short*` for the text member, and the `throw()` on the destructor of the array member. The match shows only that sizes, offsets and addresses agree (F-0069).
 
 ## Tool work (R1)
 
