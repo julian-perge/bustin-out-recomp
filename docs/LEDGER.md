@@ -6,15 +6,15 @@ Bytes are function sizes from Ghidra; code outside every function (F-0026) is no
 
 | Status | Meaning | Functions | Share | Bytes | Share |
 |---|---|---:|---:|---:|---:|
-| `sdk` | SDK function named from a unique XDK library match | 2,158 | 9.9% | 328,457 | 14.0% |
+| `sdk` | SDK function named from a unique XDK library match | 2,159 | 9.9% | 328,477 | 14.0% |
 | `sdk-ambiguous` | SDK function whose bytes match several library functions | 459 | 2.1% | 22,658 | 1.0% |
 | `sdk-section` | SDK function named only by its XBE section | 71 | 0.3% | 28,411 | 1.2% |
 | `sdk-other` | SDK function named by the XBE loader or Ghidra Function ID | 150 | 0.7% | 29,158 | 1.2% |
 | `matched` | game function whose C++ compiles to its original bytes | 1 | 0.0% | 5 | 0.0% |
 | `gc` | game function named from the GameCube symbols, with two kinds of evidence | 0 | 0.0% | 0 | 0.0% |
 | `string` | game function named from its own strings | 497 | 2.3% | 253,040 | 10.7% |
-| `open` | game function with Ghidra's automatic name | 18,396 | 84.6% | 1,692,480 | 71.9% |
-| **all** | | **21,732** | | **2,354,209** | |
+| `open` | game function with Ghidra's automatic name | 18,397 | 84.6% | 1,692,600 | 71.9% |
+| **all** | | **21,734** | | **2,354,349** | |
 
 Data labels in `symbols.txt`: 210 (not counted above).
 
@@ -25,10 +25,10 @@ Data labels in `symbols.txt`: 210 (not counted above).
 | `matched` | 1 | 0.0% | 5 | 0.0% |
 | `gc` | 0 | 0.0% | 0 | 0.0% |
 | `string` | 497 | 2.6% | 253,040 | 13.0% |
-| `auto` | 18,396 | 97.4% | 1,692,480 | 87.0% |
-| **all game** | **18,894** | | **1,945,525** | |
+| `auto` | 18,397 | 97.4% | 1,692,600 | 87.0% |
+| **all game** | **18,895** | | **1,945,645** | |
 
-Named game functions: 498 of 18,894 (2.6%).
+Named game functions: 498 of 18,895 (2.6%).
 
 ## Game functions by match status
 
@@ -40,4 +40,4 @@ A matched function keeps its `auto` name when its source uses placeholder names 
 | `nonmatching` | 0 | 0.0% | 0 | 0.0% |
 | `parked` | 3 | 0.0% | 34 | 0.0% |
 | `error` | 0 | 0.0% | 0 | 0.0% |
-| `open` | 15,585 | 82.5% | 1,930,001 | 99.2% |
+| `open` | 15,586 | 82.5% | 1,930,121 | 99.2% |
