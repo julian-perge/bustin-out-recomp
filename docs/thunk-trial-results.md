@@ -4,7 +4,7 @@ The trial is issue #1, with the spec `spec/1-virtual-base-thunk-trial.md`. It de
 
 ## Outcome
 
-Not decided. Classes 1 and 2 are whole: the 10 required functions of class 1 and the 13 of class 2 are `matched`, and no function has a blocker, so the stop rule (R6) stops nothing. Class 3 and the callers batch have not run. The constructors need `/GX`, and the default flags gained it after the probe (F-0088, ADR-0017).
+Not decided. Classes 1, 2 and 3 are whole: the 10 required functions of class 1, the 13 of class 2 and the 9 of class 3 are `matched`, and no function has a blocker, so the stop rule (R6) stops nothing. The callers batch has not run. The constructors need `/GX`, and the default flags gained it after the probe (F-0088, ADR-0017).
 
 ## Batches
 
@@ -15,10 +15,10 @@ Tokens are the total of the matcher and the reviewer. M4 batch 3 is the comparis
 | 2026-10-12 | M4 batch 3 | 20 | 18 | 0 | 2 | 136,027 | 7,557 | 306 | 445 | see `docs/m4-results.md` |
 | 2026-11-15 | Class 1 (issue #6) | 10 | 10 | 0 | 0 | 297,865 | 29,787 | 2,031 | 147 | clean |
 | 2026-11-15 | Class 2 (issue #7) | 13 | 13 | 0 | 0 | 351,204 | 27,016 | 1,990 | 176 | clean |
-| | Class 3 (issue #8) | 9 | | | | | | | | |
+| 2026-11-15 | Class 3 (issue #8) | 9 | 9 | 0 | 0 | 316,276 | 35,142 | 823 | 384 | clean |
 | | Callers (issue #9) | 20 | | | | | | | | |
 
-Neither class row holds the whole cost of its class. The matcher matched 9 of the 10 functions of class 1 and 11 of the 13 of class 2, and the lead session matched the rest. A lead session's tokens are not measured, so they are not in the rows. See "Class 1" and "Class 2" below.
+The rows of classes 1 and 2 do not hold the whole cost of their class. The matcher matched 9 of the 10 functions of class 1 and 11 of the 13 of class 2, and the lead session matched the rest. The matcher matched all 9 of class 3, and the lead session changed the tool and the form of one function. A lead session's tokens are not measured, so they are not in the rows. See "Class 1", "Class 2" and "Class 3" below.
 
 ## Class 1 (issue #6, 2026-11-15)
 
@@ -58,11 +58,30 @@ For the 11 functions of the matcher run alone, the 351,204 tokens are 31,928 per
 - **Review of pull request #16:** five source forms changed to the GameCube donor's forms, and all 14 functions stay `matched`. 0x0003C620 is a `switch (mode)`, where it was an `if` chain on a local copy of `mode`. 0x00036570 sends `player == 0 ? 0x15 : 0x16`, where it had `(player != 0) + 0x15`. The tile at +0x1C0 is one struct with one assignment, the 17 words from +0x118 are 17 members, and 0x00038D00 has one `if` less. Neither the matcher nor the reviewer had compiled the donor's forms. Four other donor forms do not match on the Xbox, and `SetFlags` matches in the derived class too (F-0093, F-0094).
 - **Guesses in the sources:** the member names, `pad198` and the `EVec3` at +0x1A4, the role words and dummy slots of the stand-in classes, the dummy first virtual base of two of them, the return types of the five handler functions, `SetFlags` as a helper of the base, and 0x0003B8D0 as a static member (a free function matches too). The match shows only that sizes, offsets and addresses agree (F-0069).
 
+## Class 3 (issue #8, 2026-11-15)
+
+The source is `src/game/auto/000A80B0.cpp`, with the shared header unchanged. The 9 required functions are `matched`, 823 bytes without padding. No function moved from `src/game/trivial/`, so the matched count outside the trial's files stays at 3303, and 3336 functions are matched in all. The rows of classes 1 and 2 stay `matched`.
+
+| Run | Tokens | Result |
+|---|---:|---|
+| Matcher | 212,242 | 9 matched. The five large overrides got empty bodies marked `parked`, because an override that is declared only resolved to the base's address. |
+| Reviewer | 104,034 | Clean for the 9 functions. The five empty bodies fail, because nobody tried to match them. |
+| Lead | not measured | `SetMode` as a `switch`, a `declared` line for an override in `bodecomp.match` (F-0098), and five `declared` lines in place of the bodies. |
+
+- **Blockers (R6):** none. Every required function is `matched`.
+- **The five large overrides:** an override keeps the name of the base's slot, and `bodecomp.match` resolved that `FUN_` name to the base function's address, so the vtable that the constructor and the destructor store did not compare equal. The maintainer approved a change to R1 of the plan: a `declared` line also takes an override (F-0098). The five bodies are now five `declared` lines, and the parked count is 3 again.
+- **`SetMode` 0x000A8180:** the matcher's condition `newMode == 8 || (newMode > 9 && newMode <= 11)` read like the disassembly. The reviewer showed that `switch (newMode)` with the cases 8, 10 and 11 gives the same bytes, and the source now has it (F-0099).
+- **Members:** the buy menu and the build menu derive from the class of 0x00145A00, which derives from `UnkTargetBase`. Their sizes 0x121C and 0x1224 are the gaps in the pause screen, and the menus' own functions prove only slightly smaller sizes (F-0100).
+- **0x0008FB70:** a `generated` line for it gives `error`, so the object does not emit it.
+- **Reviewer:** the source holds nothing that VC71 generates (ADR-0013), and the overrides are in slot order with the parameter counts of the binary. The reviewer compiled the other form of each claim of the matcher about a source form, and each claim holds. The matcher had not tried a `switch` in `SetMode`. The reviewer read commit aeaecae. The later commits put in the `switch` that the reviewer compiled, change the tool with its tests, and replace the bodies with `declared` lines. The 9 rows stay `matched` after each of them.
+- **Guesses in the sources:** the class name and the member names, the types behind +0x24AC, +0x24B4 and +0x24C4, the stand-in classes, the size of `S_00145A00` and the last 3 bytes of each menu, the parameter types of the menu methods, and the nested `if` of the last branch of `SetMode`. The match shows only that sizes, offsets and addresses agree (F-0069).
+
 ## Tool work (R1)
 
 | Work | Issues | Tokens |
 |---|---|---:|
 | `bodecomp.match`: declared lines, the probe, generated claims | #3, #4, #5 | not measured |
+| `bodecomp.match`: a declared line for an override (F-0098) | #8 | not measured |
 
 The plan left open how the tokens of a lead session are measured, and that is not settled. The build sessions of issues #3 and #4 reported no total. A session's transcript records the usage of each response, so a total can be read from it after the rule is chosen.
 
