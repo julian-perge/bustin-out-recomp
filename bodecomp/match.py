@@ -45,6 +45,10 @@ INCLUDE_LINE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
 AUTO_ADDRESS = re.compile(r"^(?:FUN|DAT|LAB)_([0-9A-Fa-f]{8})$")
 OPERATOR = re.compile(r"((?:\w+::)*)operator\s+(new|delete)\s*$")
 OPERATOR_CODES = {"operator new": "??2", "operator delete": "??3"}
+# libcmt.lib (exsup.obj) defines __except_list as the absolute value 0. It is
+# the offset of the exception list in the thread block that FS points to, so
+# the original holds a plain 0 there and has no relocation.
+ABSOLUTE = {"__except_list": 0}
 
 
 @dataclass(frozen=True)
@@ -154,6 +158,14 @@ def read_declared(root: Path, source: Path) -> tuple[list[Declared], list[str]]:
     return found, problems
 
 
+def _defines(symbol: str, prefix: str) -> bool:
+    if prefix.startswith("_"):
+        return symbol == prefix
+    # VC71 names a vtordisp thunk after the function it jumps to, with a "$"
+    # after the scope. The thunk is not the function's definition.
+    return symbol.startswith(prefix) and not symbol.startswith(prefix + "$")
+
+
 def defined_function(coff: Coff, name: str) -> Symbol:
     prefixes = decorated_prefixes(name)
     hits = [
@@ -161,9 +173,7 @@ def defined_function(coff: Coff, name: str) -> Symbol:
         for s in coff.symbols
         if s.section > 0
         and s.type == FUNCTION_TYPE
-        and any(
-            s.name == p if p.startswith("_") else s.name.startswith(p) for p in prefixes
-        )
+        and any(_defines(s.name, p) for p in prefixes)
     ]
     if len(hits) != 1:
         raise Unresolved(f"{len(hits)} compiled symbols for {name}")
@@ -199,6 +209,8 @@ class Resolver:
             self.by_name.setdefault(e.name, []).append(e.address)
 
     def external(self, name: str) -> int:
+        if name in ABSOLUTE:
+            return ABSOLUTE[name]
         if name in self.by_name and len(self.by_name[name]) == 1:
             return self.by_name[name][0]
         for prefix, address in self.declared.items():
@@ -231,9 +243,17 @@ class Resolver:
         sec = self.coff.sections[section - 1]
         if sec.characteristics & UNINITIALIZED:
             raise Unresolved(f"{sec.name} is uninitialized and cannot be checked")
+        # A label inside generated code, such as the one VC71 puts on the last
+        # instruction of an unwind funclet, does not end the item. Only the
+        # next function does, so every byte of the funclet is compared.
+        code = bool(sec.characteristics & EXECUTABLE)
         marks = sorted(
             {0, len(sec.data)}
-            | {s.value for s in self.coff.symbols if s.section == section}
+            | {
+                s.value
+                for s in self.coff.symbols
+                if s.section == section and (s.type == FUNCTION_TYPE or not code)
+            }
         )
         start = max(m for m in marks if m <= position)
         end = min((m for m in marks if m > start), default=len(sec.data))

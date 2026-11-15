@@ -23,6 +23,7 @@ from tests.xbebuild import build_xbe
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = 0xC0000040
+RDATA = 0x40000040
 DIR32, REL32 = 0x6, 0x14
 EXTERNAL, STATIC, WEAK_EXTERNAL = 2, 3, 105
 
@@ -444,6 +445,117 @@ def test_a_second_reference_to_a_checked_item_must_expect_the_same_address():
     status, _, detail = deleting_destructor_check(store_vtable, relocs, other)
     assert status == "nonmatching"
     assert "0x00020000" in detail and "0x00020004" in detail
+
+
+# A function with an exception-handling frame, as VC71 emits it with /GX. The
+# original at 0x00011000 pushes the handler at 0x00011031. The handler loads
+# the function info at 0x00020008. Its unwind table at 0x00020000 names the
+# funclet at 0x00011020, and the funclet jumps to the destructor at 0x00011010.
+FRAME = b"\x6a\xff\x68\0\0\0\0\x64\xa1\0\0\0\0\xc3"
+FUNCLET = b"\x8b\x45\xe8\x83\xe0\x01\x74\x08\x8b\x4d\xec\xe9\0\0\0\0\xc3"
+HANDLER = b"\xb8\0\0\0\0\xe9\0\0\0\0"
+UNWIND_TABLE = b"\xff\xff\xff\xff\0\0\0\0"
+FUNCTION_INFO = (0x19930520).to_bytes(4, "little") + b"\x01\0\0\0" + bytes(20)
+
+
+def rel32(target: int, site: int) -> bytes:
+    return (target - site - 4).to_bytes(4, "little", signed=True)
+
+
+def handler_chain_check(funclet=FUNCLET, info=FUNCTION_INFO, except_list=0):
+    obj = build_coff(
+        sections=[
+            (".text", FRAME, [(3, 3, DIR32), (9, 7, DIR32)]),
+            (
+                ".text$x",
+                funclet + HANDLER,
+                [(12, 5, REL32), (18, 4, DIR32), (23, 6, REL32)],
+            ),
+            (".xdata$x", UNWIND_TABLE + info, [(4, 1, DIR32), (16, 8, DIR32)], RDATA),
+        ],
+        symbols=[
+            ("?f@@YAXXZ", 0, 1, 0x20, EXTERNAL),
+            ("$L1", 0, 2, 0x20, STATIC),
+            # VC71 puts a label on the funclet's last instruction.
+            ("$L2", 16, 2, 0, STATIC),
+            ("__ehhandler$?f@@YAXXZ", 17, 2, 0x20, STATIC),
+            ("$T1", 8, 3, 0, STATIC),
+            ("_FUN_00011010", 0, 0, 0x20, EXTERNAL),
+            ("___CxxFrameHandler", 0, 0, 0x20, EXTERNAL),
+            ("__except_list", 0, 0, 0, EXTERNAL),
+            ("$T2", 0, 3, 0, STATIC),
+        ],
+    )
+    text = bytearray(b"\xcc" * 0x40)
+    text[0x20:0x31] = FUNCLET[:12] + rel32(0x11010, 0x1102C) + FUNCLET[16:]
+    text[0x31:0x3B] = (
+        b"\xb8" + (0x20008).to_bytes(4, "little") + b"\xe9" + rel32(0x11008, 0x11037)
+    )
+    rdata = (
+        UNWIND_TABLE[:4]
+        + (0x11020).to_bytes(4, "little")
+        + FUNCTION_INFO[:8]
+        + (0x20000).to_bytes(4, "little")
+        + FUNCTION_INFO[12:]
+    )
+    frame_handler = Entry(0x11008, "function", 0, "___CxxFrameHandler", "sdk", "")
+    built = parse(obj).sections[0]
+    return compare(
+        0x11000,
+        FRAME[:9] + except_list.to_bytes(4, "little") + FRAME[13:],
+        (Reloc(3, "LAB_00011031", DIR32),),
+        built.data,
+        built.relocs,
+        resolver(obj, entries=[frame_handler], rdata=rdata, text=bytes(text)),
+        {},
+    )
+
+
+def test_handler_chain_equal_to_the_original_matches():
+    assert handler_chain_check() == ("matched", "100.0", "")
+
+
+def test_handler_chain_with_one_different_funclet_byte_does_not_match():
+    # A built frame of another size gives the saved flag another offset.
+    other_offset = FUNCLET[:2] + b"\xec" + FUNCLET[3:]
+    status, _, detail = handler_chain_check(funclet=other_offset)
+    assert status == "nonmatching"
+    assert "relocation at +0x3" in detail
+    assert ".text$x item at +0x0 differs from 0x00011020" in detail
+
+
+def test_handler_chain_compares_the_funclet_bytes_after_a_label():
+    status, _, detail = handler_chain_check(funclet=FUNCLET[:-1] + b"\x90")
+    assert status == "nonmatching"
+    assert ".text$x item at +0x0 differs from 0x00011020" in detail
+
+
+def test_handler_chain_with_another_state_count_does_not_match():
+    two_states = FUNCTION_INFO[:4] + b"\x02\0\0\0" + FUNCTION_INFO[8:]
+    status, _, detail = handler_chain_check(info=two_states)
+    assert status == "nonmatching"
+    assert ".xdata$x item at +0x8 differs from 0x00020008" in detail
+
+
+def test_handler_frame_reads_except_list_as_the_value_zero():
+    status, _, detail = handler_chain_check(except_list=4)
+    assert status == "nonmatching"
+    assert "relocation at +0x9: built 0x00000000, target 0x00000004" in detail
+
+
+def test_a_vtordisp_thunk_is_not_the_definition_of_its_function():
+    obj = build_coff(
+        sections=[
+            (".text", b"\xc2\x04\x00", []),
+            (".text", b"\x2b\x49\xfc\xe9\0\0\0\0", [(4, 0, REL32)]),
+        ],
+        symbols=[
+            ("?SetMode@Foo@@UAEXH@Z", 0, 1, 0x20, EXTERNAL),
+            ("?SetMode@Foo@@$4PPPPPPPM@A@AEXH@Z", 0, 2, 0x20, EXTERNAL),
+        ],
+    )
+    found = defined_function(parse(obj), "Foo::SetMode")
+    assert found.name == "?SetMode@Foo@@UAEXH@Z"
 
 
 CLAIM = "// 0x00011000\nvoid f()\n{\n}\n"
