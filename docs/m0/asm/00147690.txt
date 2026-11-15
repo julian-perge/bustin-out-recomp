@@ -1,0 +1,18 @@
+# 0x00147690, 35 bytes, straight, from ghidra-mcp disassemble_function
+# bytes: 53568bf18b066affff50048b4e283b4c240c8b168bce0f93c3ff520c5e8ac35bc20400
+00147690  PUSH EBX
+00147691  PUSH ESI
+00147692  MOV ESI,ECX
+00147694  MOV EAX,dword ptr [ESI]
+00147696  PUSH -0x1
+00147698  CALL dword ptr [EAX + 0x4]
+0014769b  MOV ECX,dword ptr [ESI + 0x28]
+0014769e  CMP ECX,dword ptr [ESP + 0xc]
+001476a2  MOV EDX,dword ptr [ESI]
+001476a4  MOV ECX,ESI
+001476a6  SETNC BL
+001476a9  CALL dword ptr [EDX + 0xc]
+001476ac  POP ESI
+001476ad  MOV AL,BL
+001476af  POP EBX
+001476b0  RET 0x4

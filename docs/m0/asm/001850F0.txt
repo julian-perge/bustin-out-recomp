@@ -1,0 +1,14 @@
+# 0x001850F0, 49 bytes, straight, from ghidra-mcp disassemble_function
+# bytes: 8b4c24088b4424048b90d4000000c1e1040b4c241481e2ff000000c1e1040b4c240cc1e1040b4c2410898c90b0000000c3
+001850f0  MOV ECX,dword ptr [ESP + 0x8]
+001850f4  MOV EAX,dword ptr [ESP + 0x4]
+001850f8  MOV EDX,dword ptr [EAX + 0xd4]
+001850fe  SHL ECX,0x4
+00185101  OR ECX,dword ptr [ESP + 0x14]
+00185105  AND EDX,0xff
+0018510b  SHL ECX,0x4
+0018510e  OR ECX,dword ptr [ESP + 0xc]
+00185112  SHL ECX,0x4
+00185115  OR ECX,dword ptr [ESP + 0x10]
+00185119  MOV dword ptr [EAX + EDX*0x4 + 0xb0],ECX
+00185120  RET

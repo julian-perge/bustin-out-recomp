@@ -1,0 +1,21 @@
+# Disc images, archives, and anything extracted from them or from the XDK.
+*.iso
+*.zip
+*.7z
+*.rar
+/orig/
+/tools/xdk/
+
+# Build output and local tool caches.
+/build/
+/tools/wibo/
+/ghidra/
+/.venv/
+__pycache__/
+.DS_Store
+
+# Session notes that the recall plugin writes. They hold whole transcripts.
+/.recall/
+
+# Plan scratch of the agent-skills workflow.
+/tasks/

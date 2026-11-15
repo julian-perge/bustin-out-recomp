@@ -1,0 +1,9 @@
+# 0x000D20E0, 45 bytes, straight, from ghidra-mcp disassemble_function
+# bytes: f30f10442404f30f118144030000f30f10442408f30f118148030000f30f1044240cf30f11814c030000c20c00
+000d20e0  MOVSS XMM0,dword ptr [ESP + 0x4]
+000d20e6  MOVSS dword ptr [ECX + 0x344],XMM0
+000d20ee  MOVSS XMM0,dword ptr [ESP + 0x8]
+000d20f4  MOVSS dword ptr [ECX + 0x348],XMM0
+000d20fc  MOVSS XMM0,dword ptr [ESP + 0xc]
+000d2102  MOVSS dword ptr [ECX + 0x34c],XMM0
+000d210a  RET 0xc

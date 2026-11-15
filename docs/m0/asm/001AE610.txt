@@ -1,0 +1,20 @@
+# 0x001AE610, 62 bytes, straight, from ghidra-mcp disassemble_function
+# bytes: 568bf18b86b0feffff8b48088b9664ffffff8b8431b0feffff578b3a8d8c31b0feffff6a01ff90b80100000fbfc8518b8e64ffffffff971c0100005f5ec3
+001ae610  PUSH ESI
+001ae611  MOV ESI,ECX
+001ae613  MOV EAX,dword ptr [ESI + 0xfffffeb0]
+001ae619  MOV ECX,dword ptr [EAX + 0x8]
+001ae61c  MOV EDX,dword ptr [ESI + 0xffffff64]
+001ae622  MOV EAX,dword ptr [ECX + ESI*0x1 + 0xfffffeb0]
+001ae629  PUSH EDI
+001ae62a  MOV EDI,dword ptr [EDX]
+001ae62c  LEA ECX,[ECX + ESI*0x1 + 0xfffffeb0]
+001ae633  PUSH 0x1
+001ae635  CALL dword ptr [EAX + 0x1b8]
+001ae63b  MOVSX ECX,AX
+001ae63e  PUSH ECX
+001ae63f  MOV ECX,dword ptr [ESI + 0xffffff64]
+001ae645  CALL dword ptr [EDI + 0x11c]
+001ae64b  POP EDI
+001ae64c  POP ESI
+001ae64d  RET

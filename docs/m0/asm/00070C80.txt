@@ -1,0 +1,6 @@
+# 0x00070C80, 15 bytes, indirect, from ghidra-mcp disassemble_function
+# bytes: 8b89b80000008b411083c110ff6004
+00070c80  MOV ECX,dword ptr [ECX + 0xb8]
+00070c86  MOV EAX,dword ptr [ECX + 0x10]
+00070c89  ADD ECX,0x10
+00070c8c  JMP dword ptr [EAX + 0x4]

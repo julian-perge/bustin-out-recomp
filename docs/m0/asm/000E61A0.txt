@@ -1,0 +1,5 @@
+# 0x000E61A0, 8 bytes, trivial, from ghidra-mcp disassemble_function
+# bytes: 80797d000f94c0c3
+000e61a0  CMP byte ptr [ECX + 0x7d],0x0
+000e61a4  SETZ AL
+000e61a7  RET

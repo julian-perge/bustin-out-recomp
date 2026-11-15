@@ -1,0 +1,16 @@
+# 0x0004A920, 33 bytes, indirect, from ghidra-mcp disassemble_function
+# bytes: 56578bf98b47048d77046aff8bceff500483878c000000018b165f8bce5eff620c
+0004a920  PUSH ESI
+0004a921  PUSH EDI
+0004a922  MOV EDI,ECX
+0004a924  MOV EAX,dword ptr [EDI + 0x4]
+0004a927  LEA ESI,[EDI + 0x4]
+0004a92a  PUSH -0x1
+0004a92c  MOV ECX,ESI
+0004a92e  CALL dword ptr [EAX + 0x4]
+0004a931  ADD dword ptr [EDI + 0x8c],0x1
+0004a938  MOV EDX,dword ptr [ESI]
+0004a93a  POP EDI
+0004a93b  MOV ECX,ESI
+0004a93d  POP ESI
+0004a93e  JMP dword ptr [EDX + 0xc]

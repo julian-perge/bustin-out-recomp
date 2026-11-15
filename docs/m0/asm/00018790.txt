@@ -1,0 +1,10 @@
+# 0x00018790, 29 bytes, straight, from ghidra-mcp disassemble_function
+# bytes: 8b4424048b54240881c12c01000089018b44240c895104894108c20c00
+00018790  MOV EAX,dword ptr [ESP + 0x4]
+00018794  MOV EDX,dword ptr [ESP + 0x8]
+00018798  ADD ECX,0x12c
+0001879e  MOV dword ptr [ECX],EAX
+000187a0  MOV EAX,dword ptr [ESP + 0xc]
+000187a4  MOV dword ptr [ECX + 0x4],EDX
+000187a7  MOV dword ptr [ECX + 0x8],EAX
+000187aa  RET 0xc

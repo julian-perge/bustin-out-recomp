@@ -1,0 +1,19 @@
+# 0x0012D3C0, 50 bytes, jcc, from ghidra-mcp disassemble_function
+# bytes: 8b4424048b0085c0742556ba01000000578b388bb1bc57010089bcb1bc2f01000191bc5701008b400885c075e45f5ec20400
+0012d3c0  MOV EAX,dword ptr [ESP + 0x4]
+0012d3c4  MOV EAX,dword ptr [EAX]
+0012d3c6  TEST EAX,EAX
+0012d3c8  JZ 0x0012d3ef
+0012d3ca  PUSH ESI
+0012d3cb  MOV EDX,0x1
+0012d3d0  PUSH EDI
+0012d3d1  MOV EDI,dword ptr [EAX]
+0012d3d3  MOV ESI,dword ptr [ECX + 0x157bc]
+0012d3d9  MOV dword ptr [ECX + ESI*0x4 + 0x12fbc],EDI
+0012d3e0  ADD dword ptr [ECX + 0x157bc],EDX
+0012d3e6  MOV EAX,dword ptr [EAX + 0x8]
+0012d3e9  TEST EAX,EAX
+0012d3eb  JNZ 0x0012d3d1
+0012d3ed  POP EDI
+0012d3ee  POP ESI
+0012d3ef  RET 0x4

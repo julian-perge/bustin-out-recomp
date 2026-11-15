@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "ghidra-mcp": {
+      "type": "stdio",
+      "command": "/opt/homebrew/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "${HOME}/git/bethington/ghidra-mcp",
+        "bridge-mcp-ghidra",
+        "--transport",
+        "stdio",
+        "--no-lazy"
+      ],
+      "env": {
+        "GHIDRA_MCP_URL": "http://127.0.0.1:8089"
+      }
+    }
+  }
+}

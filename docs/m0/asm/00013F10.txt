@@ -1,0 +1,17 @@
+# 0x00013F10, 31 bytes, straight, from ghidra-mcp disassemble_function
+# bytes: d94108d94104d901d9c0d8c9d9c2d8cbdec1d9c3d8ccdec1dddbddd8ddd8c3
+00013f10  FLD float ptr [ECX + 0x8]
+00013f13  FLD float ptr [ECX + 0x4]
+00013f16  FLD float ptr [ECX]
+00013f18  FLD ST0
+00013f1a  FMUL ST1
+00013f1c  FLD ST2
+00013f1e  FMUL ST3
+00013f20  FADDP
+00013f22  FLD ST3
+00013f24  FMUL ST4
+00013f26  FADDP
+00013f28  FSTP ST3
+00013f2a  FSTP ST0
+00013f2c  FSTP ST0
+00013f2e  RET
