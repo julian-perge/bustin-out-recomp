@@ -108,14 +108,6 @@ struct S_00038B70
     int f;
     int FUN_00038B70();
 };
-struct S_0003B2C0
-{
-    void FUN_0003B2C0(int a1);
-};
-struct S_0003B300
-{
-    void FUN_0003B300(int a1, int a2);
-};
 struct S_0003C6A0
 {
     char pad[0xC0];
@@ -397,16 +389,6 @@ int S_00038AF0::FUN_00038AF0()
 int S_00038B70::FUN_00038B70()
 {
     return f;
-}
-
-// 0x0003B2C0
-void S_0003B2C0::FUN_0003B2C0(int a1)
-{
-}
-
-// 0x0003B300
-void S_0003B300::FUN_0003B300(int a1, int a2)
-{
 }
 
 // 0x0003C6A0

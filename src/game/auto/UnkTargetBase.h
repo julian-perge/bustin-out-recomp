@@ -17,6 +17,8 @@ struct EVec3
     float x;
     float y;
     float z;
+    EVec3() {}
+    explicit EVec3(float value) { x = y = z = value; }
 };
 
 // The vtable of UnkTargetBase is at 0x002EC588 and has 17 slots.
@@ -42,6 +44,8 @@ public:
     virtual void FUN_001245D0(int a1, char a2);
     virtual void FUN_00124600();
 
+    void FUN_00124680(unsigned int bits, bool set);
+
     // The destructor destroys this member with the function at 0x00142B90.
     char children[0x0C];
     UnkTargetBase* parent;
@@ -57,6 +61,15 @@ public:
     char unk41;
 
     bool Flag1() const { return (flags >> 1) & 1; }
+    void SetFlags(unsigned int bits, bool set)
+    {
+        FUN_00017CD0(bits, set);
+        if (set) {
+            flags |= bits;
+        } else {
+            flags &= ~bits;
+        }
+    }
 };
 
 // The vtable of Unk802A2AC0 is at 0x002E38F4 and has 3 slots.
