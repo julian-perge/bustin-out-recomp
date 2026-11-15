@@ -159,6 +159,14 @@ def test_call_the_delinker_dropped_compares_with_the_literal_offset():
     assert "target 0x00011020" in call_check(wrong, ())[2]
 
 
+def test_address_the_delinker_dropped_compares_with_the_literal_address():
+    obj = push_obj([("_DAT_00020000", 0, 0, 0, EXTERNAL)])
+    literal = b"\x68" + (0x20000).to_bytes(4, "little") + b"\xc3"
+    assert check(obj, unit=literal, unit_relocs=())[0] == "matched"
+    wrong = b"\x68" + (0x20004).to_bytes(4, "little") + b"\xc3"
+    assert "target 0x00020004" in check(obj, unit=wrong, unit_relocs=())[2]
+
+
 def bare(unit: bytes, built: bytes):
     obj = build_coff(sections=[(".text", built, [])], symbols=[])
     return compare(0x11000, unit, (), built, (), resolver(obj), {})

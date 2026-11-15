@@ -17,14 +17,6 @@
 
 struct ERC;
 
-// The class that both menus derive from is built by 0x00145A00 with five arguments. It ends where
-// the first member of the menus begins.
-class S_00145A00 : public UnkTargetBase
-{
-public:
-    char unk44[0xF4 - 0x44];
-};
-
 // The buy menu. Its largest member offset is a byte at +0x1218, and the gap to the build menu in
 // the pause screen is 0x121C.
 class S_000A1B00 : public S_00145A00
