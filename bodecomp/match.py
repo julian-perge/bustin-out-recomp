@@ -519,14 +519,22 @@ def run(root: Path, compile=compile_cpp) -> tuple[list[Result], list[str]]:
 
 
 def settle_jumps(results: list[Result]) -> list[Result]:
-    status = {r.address: r.status for r in results}
-    settled = []
-    for r in results:
-        target = status.get(r.jump, "not claimed")
-        if r.status == "matched" and r.jump is not None and target != "matched":
-            detail = f"its jump target 0x{r.jump:08X} is {target}"
-            r = replace(r, status="nonmatching", detail=detail)
-        settled.append(r)
+    settled = list(results)
+    # A thunk can jump to a claimed function that also ends in a jump. A row
+    # that changes can change the row of a thunk before it, so the pass
+    # repeats until no row changes.
+    changed = True
+    while changed:
+        changed = False
+        status = {r.address: r.status for r in settled}
+        for i, r in enumerate(settled):
+            if r.status != "matched" or r.jump is None:
+                continue
+            target = status.get(r.jump, "not claimed")
+            if target != "matched":
+                detail = f"its jump target 0x{r.jump:08X} is {target}"
+                settled[i] = replace(r, status="nonmatching", detail=detail)
+                changed = True
     return settled
 
 

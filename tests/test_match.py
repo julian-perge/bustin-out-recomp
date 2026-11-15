@@ -7,6 +7,7 @@ from bodecomp.coff import Reloc, parse
 from bodecomp.match import (
     FLAGS,
     Resolver,
+    Result,
     Unresolved,
     candidates,
     compare,
@@ -17,6 +18,7 @@ from bodecomp.match import (
     run,
     scan_source,
     scope_path,
+    settle_jumps,
 )
 from bodecomp.symbols import Entry, write_symbols
 from bodecomp.xbe import Xbe
@@ -837,7 +839,10 @@ def thunk_project(
 def thunk_rows(tmp_path: Path, claims: str, **kw):
     root, obj = thunk_project(tmp_path, claims, **kw)
     results, problems = run(root, compile=fake_compile(obj))
-    return {r.address: (r.status, r.score, r.detail) for r in results}, problems
+    rows = {r.address: (r.status, r.score, r.detail) for r in results}
+    # The dict keeps one row per address, so a second row would go unseen.
+    assert len(rows) == len(results)
+    return rows, problems
 
 
 def test_claimed_thunk_with_a_matched_target_is_matched(tmp_path):
@@ -868,6 +873,21 @@ def test_claimed_thunk_whose_target_is_not_claimed_is_not_matched(tmp_path):
     )
     detail = "its jump target 0x00011010 is not claimed"
     assert rows == {0x11000: SAME, 0x11020: ("nonmatching", "100.0", detail)}
+
+
+def test_thunk_is_not_matched_when_a_function_further_along_its_jumps_is_not():
+    source = Path("src/game/a.cpp")
+    rows = [
+        Result(0x11020, "matched", source, "100.0", "", 0x11030),
+        Result(0x11030, "matched", source, "100.0", "", 0x11010),
+        Result(0x11010, "nonmatching", source, "50.0", "first difference at +0x1"),
+    ]
+    settled = {r.address: (r.status, r.detail) for r in settle_jumps(rows)}
+    assert settled == {
+        0x11020: ("nonmatching", "its jump target 0x00011030 is nonmatching"),
+        0x11030: ("nonmatching", "its jump target 0x00011010 is nonmatching"),
+        0x11010: ("nonmatching", "first difference at +0x1"),
+    }
 
 
 def test_claimed_thunk_that_jumps_to_a_claimed_deleting_destructor_is_matched(
@@ -981,6 +1001,20 @@ def test_generated_code_is_equal_when_a_later_check_that_reached_it_passed():
 
 def test_generated_code_stays_equal_when_a_later_check_that_reached_it_failed():
     assert reached_twice("function table") == ""
+
+
+def test_item_with_two_relocations_that_point_elsewhere_reports_the_first():
+    obj = build_coff(
+        sections=[(".rdata", bytes(8), [(0, 1, DIR32), (4, 1, DIR32)], RDATA)],
+        symbols=[
+            ("?table@@3PAXA", 0, 1, 0, EXTERNAL),
+            ("_FUN_00011020", 0, 0, 0x20, EXTERNAL),
+        ],
+    )
+    rdata = (0x11030).to_bytes(4, "little") + (0x11040).to_bytes(4, "little")
+    r = resolver(obj, rdata=rdata)
+    with pytest.raises(Unresolved, match=r"\.rdata\+0x0 points elsewhere"):
+        r.site("?table@@3PAXA", 0, 0x20000)
 
 
 def test_claim_on_the_address_of_checked_data_is_an_error(tmp_path):
