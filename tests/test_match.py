@@ -444,3 +444,127 @@ def test_a_second_reference_to_a_checked_item_must_expect_the_same_address():
     status, _, detail = deleting_destructor_check(store_vtable, relocs, other)
     assert status == "nonmatching"
     assert "0x00020000" in detail and "0x00020004" in detail
+
+
+CLAIM = "// 0x00011000\nvoid f()\n{\n}\n"
+UNRESOLVED = "relocation at +0x1: {} names 0 entries in symbols.txt"
+
+
+# The built f() calls a constructor or destructor that its object does not
+# define. The original f() at 0x00011000 calls 0x00011010.
+def declared_run(root: Path, callee: str = "??0Foo@@QAE@XZ"):
+    obj = build_coff(
+        sections=[(".text", CALL, [(1, 1, REL32)])],
+        symbols=[
+            ("?f@@YAXXZ", 0, 1, 0x20, EXTERNAL),
+            (callee, 0, 0, 0x20, EXTERNAL),
+        ],
+    )
+    results, problems = run(root, compile=fake_compile(obj))
+    return [(r.status, r.detail) for r in results], problems
+
+
+def test_call_to_a_declared_constructor_resolves_to_the_stated_address(tmp_path):
+    root = project(tmp_path, "// declared: 0x00011010 Foo::Foo\n" + CLAIM)
+    assert declared_run(root) == ([("matched", "")], [])
+
+
+def test_call_to_a_declared_destructor_resolves_to_the_stated_address(tmp_path):
+    root = project(tmp_path, "// declared: 0x00011010 Foo::~Foo\n" + CLAIM)
+    assert declared_run(root, "??1Foo@@QAE@XZ") == ([("matched", "")], [])
+
+
+def test_declared_constructor_at_another_address_does_not_match(tmp_path):
+    root = project(tmp_path, "// declared: 0x00011020 Foo::Foo\n" + CLAIM)
+    detail = "relocation at +0x1: built 0x00011020, target 0x00011010"
+    assert declared_run(root) == ([("nonmatching", detail)], [])
+
+
+def test_constructor_without_a_declared_line_does_not_resolve(tmp_path):
+    root = project(tmp_path, CLAIM)
+    detail = UNRESOLVED.format("??0Foo@@QAE@XZ")
+    assert declared_run(root) == ([("nonmatching", detail)], [])
+
+
+def test_declared_constructor_gives_no_address_to_the_destructor(tmp_path):
+    root = project(tmp_path, "// declared: 0x00011010 Foo::Foo\n" + CLAIM)
+    detail = UNRESOLVED.format("??1Foo@@QAE@XZ")
+    assert declared_run(root, "??1Foo@@QAE@XZ") == ([("nonmatching", detail)], [])
+
+
+def test_declared_constructor_gives_no_address_to_a_nested_class(tmp_path):
+    root = project(tmp_path, "// declared: 0x00011010 Foo::Foo\n" + CLAIM)
+    detail = UNRESOLVED.format("??0Foo@N@@QAE@XZ")
+    assert declared_run(root, "??0Foo@N@@QAE@XZ") == ([("nonmatching", detail)], [])
+
+
+def test_declared_line_in_an_included_header_is_read(tmp_path):
+    root = project(tmp_path, '#include "Foo.h"\n' + CLAIM)
+    (root / "src/game/Foo.h").write_text("// declared: 0x00011010 Foo::Foo\n")
+    assert declared_run(root) == ([("matched", "")], [])
+
+
+def test_declared_line_in_a_header_of_a_header_is_read(tmp_path):
+    root = project(tmp_path, '#include "Foo.h"\n' + CLAIM)
+    (root / "src/game/Foo.h").write_text('#include "base/Base.h"\n')
+    (root / "src/game/base").mkdir()
+    (root / "src/game/base/Base.h").write_text("// declared: 0x00011010 Foo::Foo\n")
+    assert declared_run(root) == ([("matched", "")], [])
+
+
+def test_declared_line_in_a_header_that_is_not_included_is_not_read(tmp_path):
+    root = project(tmp_path, CLAIM)
+    (root / "src/game/Foo.h").write_text("// declared: 0x00011010 Foo::Foo\n")
+    detail = UNRESOLVED.format("??0Foo@@QAE@XZ")
+    assert declared_run(root) == ([("nonmatching", detail)], [])
+
+
+def test_declared_line_takes_only_a_constructor_or_destructor(tmp_path):
+    lines = (
+        "// declared: 0x00011010 Foo::Bar\n"
+        "// declared: 0x00011010 Bar\n"
+        "// declared: 0x00011010 Foo::operator new\n"
+    )
+    root = project(tmp_path, lines + CLAIM)
+    start = "src/game/a.cpp:{}: declared takes only a constructor or destructor, not {}"
+    assert declared_run(root) == (
+        [],
+        [
+            start.format(1, "Foo::Bar"),
+            start.format(2, "Bar"),
+            start.format(3, "Foo::operator new"),
+        ],
+    )
+
+
+def test_declared_line_without_an_eight_digit_address_is_a_problem(tmp_path):
+    root = project(tmp_path, "// declared: 0x11010 Foo::Foo\n" + CLAIM)
+    problem = "src/game/a.cpp:1: declared needs an 8-digit 0xADDRESS and a name"
+    assert declared_run(root) == ([], [problem])
+
+
+def test_two_files_can_hold_the_same_declared_line(tmp_path):
+    root = project(tmp_path, "// declared: 0x00011010 Foo::Foo\n" + CLAIM)
+    (root / "src/game/b.cpp").write_text("// declared: 0x00011010 Foo::Foo\n")
+    assert declared_run(root) == ([("matched", "")], [])
+
+
+def test_one_declared_name_with_two_addresses_is_a_problem(tmp_path):
+    root = project(tmp_path, "// declared: 0x00011010 Foo::Foo\n" + CLAIM)
+    (root / "src/game/b.cpp").write_text("// declared: 0x00011020 Foo::Foo\n")
+    problem = (
+        "Foo::Foo is declared at 0x00011010 in src/game/a.cpp:1 "
+        "and at 0x00011020 in src/game/b.cpp:1"
+    )
+    assert declared_run(root) == ([], [problem])
+
+
+def test_a_bad_declared_line_in_a_shared_header_is_reported_once(tmp_path):
+    root = project(tmp_path, '#include "Foo.h"\n' + CLAIM)
+    (root / "src/game/b.cpp").write_text('#include "Foo.h"\n')
+    (root / "src/game/Foo.h").write_text("// declared: 0x00011010 Foo::Bar\n")
+    problem = (
+        "src/game/Foo.h:1: declared takes only a constructor or destructor, "
+        "not Foo::Bar"
+    )
+    assert declared_run(root) == ([], [problem])
