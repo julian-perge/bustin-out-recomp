@@ -6,7 +6,7 @@ import io
 import os
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from bodecomp.cl import compile_cpp
@@ -33,12 +33,15 @@ BLOCKERS = (
     "unclassified",
 )
 DIR32, REL32 = 0x6, 0x14
+JUMP = 0xE9
 PADDING = {0xCC, 0x90}
 UNINITIALIZED = 0x80
 EXECUTABLE = 0x20000000
 
 ADDRESS_LINE = re.compile(r"^//\s*0x([0-9A-Fa-f]{8})\s*$")
 PARKED_LINE = re.compile(r"^//\s*parked:\s*(.+?)\s*$")
+GENERATED_LINE = re.compile(r"^//\s*generated:\s*(.*?)\s*$")
+GENERATED_BODY = re.compile(r"0x([0-9A-Fa-f]{8})")
 DECLARED_LINE = re.compile(r"^//\s*declared:\s*(.*?)\s*$")
 DECLARED_BODY = re.compile(r"0x([0-9A-Fa-f]{8})\s+(.+)")
 INCLUDE_LINE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
@@ -57,6 +60,7 @@ class Marked:
     source: Path
     name: str
     parked: str
+    generated: bool = False
 
 
 @dataclass(frozen=True)
@@ -73,6 +77,7 @@ class Result:
     source: Path
     score: str
     detail: str
+    jump: int | None = None
 
 
 class Unresolved(Exception):
@@ -83,6 +88,14 @@ def scan_source(path: Path, text: str) -> tuple[list[Marked], list[str]]:
     lines = text.splitlines()
     found, problems = [], []
     for i, line in enumerate(lines):
+        if g := GENERATED_LINE.match(line.strip()):
+            if body := GENERATED_BODY.fullmatch(g.group(1)):
+                found.append(Marked(int(body.group(1), 16), path, "", "", True))
+            else:
+                problems.append(
+                    f"{path}:{i + 1}: generated needs one 8-digit 0xADDRESS"
+                )
+            continue
         m = ADDRESS_LINE.match(line.strip())
         if not m:
             continue
@@ -204,6 +217,13 @@ class Resolver:
         self.addresses = addresses
         self.xbe = xbe
         self.declared = declared or {}
+        # Code without an address comment that a check compared with the
+        # original, by the original address of its first byte. The value is
+        # "" when a check that reached it passed, and the problem of the first
+        # check that reached it when none passed.
+        self.checked: dict[int, str] = {}
+        # The address that such code jumps to, when it ends in a jump.
+        self.jumps: dict[int, int] = {}
         self.by_name: dict[str, list[int]] = {}
         for e in entries:
             self.by_name.setdefault(e.name, []).append(e.address)
@@ -272,6 +292,10 @@ class Resolver:
             raise Unresolved(str(error)) from None
         item = sec.data[start:end]
         sites = set()
+        # A relocation that points elsewhere does not end the walk. The items
+        # behind the later relocations are still compared, so that a claimed
+        # function among them counts as reached.
+        problem = None
         for r in sec.relocs:
             if not start <= r.offset < end:
                 continue
@@ -280,13 +304,42 @@ class Resolver:
             literal = int.from_bytes(original[at : at + 4], "little", signed=True)
             expected = literal + (address + at + 4 if r.type == REL32 else 0)
             inplace = int.from_bytes(item[at : at + 4], "little", signed=True)
-            if self.value(r.symbol, inplace, expected, seen) != expected:
-                raise Unresolved(f"{sec.name}+0x{r.offset:X} points elsewhere")
+            last = at >= 1 and at + 4 == len(item)
+            if code and last and r.type == REL32 and item[at - 1] == JUMP:
+                self.jumps[address] = expected
+            try:
+                if self.value(r.symbol, inplace, expected, seen) != expected:
+                    raise Unresolved(f"{sec.name}+0x{r.offset:X} points elsewhere")
+            except Unresolved as error:
+                problem = problem or error
+        if problem:
+            raise problem
         for i, (a, b) in enumerate(zip(item, original, strict=True)):
             if i not in sites and a != b:
                 raise Unresolved(
                     f"{sec.name} item at +0x{start:X} differs from 0x{address:08X}"
                 )
+
+    def site(self, name: str, inplace: int, expected: int) -> int:
+        seen: dict = {}
+        failure = None
+        try:
+            value = self.value(name, inplace, expected, seen)
+        except Unresolved as error:
+            failure = error
+        # The items of one check can refer to each other. A check that passes
+        # proves each item it compared equal to the original, whatever another
+        # check found. A check that fails proves none of them equal.
+        for (section, _), address in seen.items():
+            if not self.coff.sections[section - 1].characteristics & EXECUTABLE:
+                continue
+            if failure is None:
+                self.checked[address] = ""
+            else:
+                self.checked.setdefault(address, str(failure))
+        if failure:
+            raise failure
+        return value
 
     def value(self, name: str, inplace: int, expected: int | None, seen: dict) -> int:
         # coff.Reloc keeps the symbol's name, not its index, so two symbols
@@ -395,7 +448,7 @@ def _site(o, address, target, unit_relocs, built, built_relocs, resolver, table)
         else:
             expected = literal & 0xFFFFFFFF
         inplace = int.from_bytes(built[o : o + 4], "little", signed=True)
-        got = resolver.value(b.symbol, inplace, expected, {})
+        got = resolver.site(b.symbol, inplace, expected)
     except Unresolved as error:
         return str(error)
     if got != expected:
@@ -462,7 +515,27 @@ def run(root: Path, compile=compile_cpp) -> tuple[list[Result], list[str]]:
     for source in sorted({m.source for m in marked}):
         group = [m for m in marked if m.source == source]
         results += check_source(root, source, group, xbe, table, entries, compile)
-    return sorted(results, key=lambda r: r.address), []
+    return sorted(settle_jumps(results), key=lambda r: r.address), []
+
+
+def settle_jumps(results: list[Result]) -> list[Result]:
+    settled = list(results)
+    # A thunk can jump to a claimed function that also ends in a jump. A row
+    # that changes can change the row of a thunk before it, so the pass
+    # repeats until no row changes.
+    changed = True
+    while changed:
+        changed = False
+        status = {r.address: r.status for r in settled}
+        for i, r in enumerate(settled):
+            if r.status != "matched" or r.jump is None:
+                continue
+            target = status.get(r.jump, "not claimed")
+            if target != "matched":
+                detail = f"its jump target 0x{r.jump:08X} is {target}"
+                settled[i] = replace(r, status="nonmatching", detail=detail)
+                changed = True
+    return settled
 
 
 def check_source(
@@ -485,6 +558,8 @@ def check_source(
     results = []
     symbols: dict[Marked, Symbol] = {}
     for m in group:
+        if m.generated:
+            continue
         try:
             symbols[m] = defined_function(coff, m.name)
         except Unresolved as error:
@@ -509,6 +584,19 @@ def check_source(
         if m.parked:
             status, detail = "parked", m.parked
         results.append(Result(m.address, status, source, score, detail))
+    # The checks above reach compiler-generated code, so the claims come last.
+    for m in group:
+        if not m.generated:
+            continue
+        problem = resolver.checked.get(m.address)
+        if problem is None:
+            detail = "the check reached no compiler-generated function here"
+            results.append(Result(m.address, "error", source, "", detail))
+        elif problem:
+            results.append(Result(m.address, "nonmatching", source, "", problem))
+        else:
+            jump = resolver.jumps.get(m.address)
+            results.append(Result(m.address, "matched", source, "100.0", "", jump))
     return results
 
 
