@@ -58,10 +58,6 @@ struct S_000474A0
     int f;
     int FUN_000474A0();
 };
-struct S_00047D10
-{
-    void FUN_00047D10(int a1, int a2);
-};
 struct S_00047EC0
 {
     void FUN_00047EC0(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13);
@@ -321,11 +317,6 @@ void FUN_00047B20()
 
 // 0x00047CD0
 void FUN_00047CD0()
-{
-}
-
-// 0x00047D10
-void S_00047D10::FUN_00047D10(int a1, int a2)
 {
 }
 
