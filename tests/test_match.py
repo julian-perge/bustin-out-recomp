@@ -572,6 +572,17 @@ def test_a_vtordisp_thunk_is_not_the_definition_of_its_function():
     assert found.name == "?SetMode@Foo@@UAEXH@Z"
 
 
+def test_a_c_name_is_not_defined_by_a_longer_c_name():
+    obj = build_coff(
+        sections=[(".text", b"\xc3", []), (".text", b"\xc3", [])],
+        symbols=[
+            ("_Plain", 0, 1, 0x20, EXTERNAL),
+            ("_PlainOther", 0, 2, 0x20, EXTERNAL),
+        ],
+    )
+    assert defined_function(parse(obj), "Plain").name == "_Plain"
+
+
 CLAIM = "// 0x00011000\nvoid f()\n{\n}\n"
 UNRESOLVED = "relocation at +0x1: {} names 0 entries in symbols.txt"
 
