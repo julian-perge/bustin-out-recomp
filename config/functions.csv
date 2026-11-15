@@ -977,7 +977,7 @@ address,status,source,score,detail
 0x000E30E0,matched,src/game/trivial/000E.cpp,100.0,
 0x000E31C0,matched,src/game/auto/000E31C0.cpp,100.0,
 0x000E3200,matched,src/game/auto/000E31C0.cpp,100.0,
-0x000E3280,parked,src/game/auto/000E3280.cpp,67.0,scheduling
+0x000E3280,matched,src/game/auto/000E3280.cpp,100.0,
 0x000E3730,matched,src/game/trivial/000E.cpp,100.0,
 0x000E3750,matched,src/game/trivial/000E.cpp,100.0,
 0x000E4150,matched,src/game/trivial/000E.cpp,100.0,

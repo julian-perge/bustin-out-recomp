@@ -18,6 +18,7 @@ struct EVec2
     float y;
     EVec2() {}
     EVec2(float x_, float y_) { x = x_; y = y_; }
+    EVec2(float value) { x = y = value; }
 };
 
 struct EVec3

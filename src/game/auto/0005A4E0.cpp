@@ -7,17 +7,7 @@
 
 struct ERC;
 
-struct ListBase_0005A4E0
-{
-    ~ListBase_0005A4E0() { FUN_00142B90(); }
-    void FUN_00142B90();
-
-    void* head;
-    void* tail;
-    char owns;
-};
-
-struct List_0005A4E0 : ListBase_0005A4E0
+struct List_0005A4E0
 {
     List_0005A4E0()
     {
@@ -25,6 +15,12 @@ struct List_0005A4E0 : ListBase_0005A4E0
         head = 0;
         owns = 1;
     }
+    ~List_0005A4E0() { FUN_00142B90(); }
+    void FUN_00142B90();
+
+    void* head;
+    void* tail;
+    char owns;
 };
 
 // A screen with a vtable at 0x002E4390. It overrides slots 0, 1, 2 and 6 of UnkTargetBase.

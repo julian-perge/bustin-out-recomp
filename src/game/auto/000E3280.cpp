@@ -57,17 +57,14 @@ public:
     int unk68;
     char unk6C;
     int unk70;
-    float unk74;
-    float unk78;
-    float unk7C;
-    float unk80;
+    EVec2 unk74;
+    EVec2 unk7C;
     int unk84;
 };
 
 // 0x000E3280
-// parked: scheduling
 Unk_000E3280::Unk_000E3280(char a1)
     : Dialog_000E3280(DAT_002E3464), unk5C(a1), unk60(0), unk64(0), unk68(0), unk6C(0), unk70(0),
-      unk74(0.0f), unk78(0.0f), unk7C(0.0f), unk80(0.0f), unk84(0)
+      unk74(0.0f), unk7C(0.0f), unk84(0)
 {
 }
