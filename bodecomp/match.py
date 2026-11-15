@@ -6,6 +6,7 @@ import io
 import os
 import re
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -504,17 +505,25 @@ def _first_error(log: str) -> str:
     return (errors or lines or [""])[0]
 
 
-def run(root: Path, compile=compile_cpp) -> tuple[list[Result], list[str]]:
+def run(
+    root: Path, compile=compile_cpp, jobs: int | None = None
+) -> tuple[list[Result], list[str]]:
     marked, problems = scan(root)
     if problems:
         return [], problems
     xbe = Xbe.parse((root / XBE).read_bytes())
     table = read_target_table(root / TARGET_SYMBOLS)
     entries = read_symbols(root / "config/symbols.txt")
-    results = []
-    for source in sorted({m.source for m in marked}):
+
+    def check(source: Path) -> list[Result]:
         group = [m for m in marked if m.source == source]
-        results += check_source(root, source, group, xbe, table, entries, compile)
+        return check_source(root, source, group, xbe, table, entries, compile)
+
+    # Nearly all of the time goes to the compiler, which runs as its own
+    # process, so threads are enough to compile several sources at once.
+    sources = sorted({m.source for m in marked})
+    with ThreadPoolExecutor(max_workers=jobs or os.cpu_count()) as pool:
+        results = [r for found in pool.map(check, sources) for r in found]
     return sorted(settle_jumps(results), key=lambda r: r.address), []
 
 

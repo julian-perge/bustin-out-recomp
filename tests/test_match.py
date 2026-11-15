@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 
 import pytest
@@ -304,6 +305,31 @@ def test_two_sources_claiming_one_address_is_a_problem(tmp_path):
     (root / "src/game/b.cpp").write_text("// 0x00011010\nvoid g()\n{\n}\n")
     _, problems = run(root, compile=fake_compile(b""))
     assert problems == ["0x00011010 is claimed by src/game/a.cpp and src/game/b.cpp"]
+
+
+def test_run_compiles_two_sources_at_the_same_time(tmp_path):
+    root = project(tmp_path, "// 0x00011000\nvoid f()\n{\n}\n")
+    (root / "src/game/b.cpp").write_text("// 0x00011010\nvoid g()\n{\n}\n")
+    obj = build_coff(
+        sections=[(".text", CALL, [(1, 1, REL32)])],
+        symbols=[
+            ("?f@@YAXXZ", 0, 1, 0x20, EXTERNAL),
+            ("_FUN_00011010", 0, 0, 0x20, EXTERNAL),
+        ],
+    )
+    stub = fake_compile(obj)
+    both = threading.Barrier(2, timeout=5)
+
+    def compile_both(root, source, output, flags):
+        both.wait()
+        return stub(root, source, output, flags)
+
+    results, problems = run(root, compile=compile_both, jobs=2)
+    assert problems == []
+    assert [(r.address, r.status) for r in results] == [
+        (0x11000, "matched"),
+        (0x11010, "error"),
+    ]
 
 
 needs_toolchain = pytest.mark.skipif(
