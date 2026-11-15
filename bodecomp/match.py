@@ -161,10 +161,13 @@ def read_declared(root: Path, source: Path) -> tuple[list[Declared], list[str]]:
                 problems.append(
                     f"{path}:{i}: declared needs an 8-digit 0xADDRESS and a name"
                 )
-            elif decorated_prefixes(body.group(2))[0][:3] not in ("??0", "??1"):
+                continue
+            prefix = decorated_prefixes(body.group(2))[0]
+            member = "::" in body.group(2) and not prefix.startswith("??")
+            if not (member or prefix.startswith(("??0", "??1"))):
                 problems.append(
-                    f"{path}:{i}: declared takes only a constructor or destructor, "
-                    f"not {body.group(2)}"
+                    f"{path}:{i}: declared takes only a constructor, a destructor "
+                    f"or a member function, not {body.group(2)}"
                 )
             else:
                 address = int(body.group(1), 16)
