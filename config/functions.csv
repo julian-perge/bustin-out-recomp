@@ -64,6 +64,7 @@ address,status,source,score,detail
 0x00013000,matched,src/game/trivial/0001.cpp,100.0,
 0x00013020,matched,src/game/trivial/0001.cpp,100.0,
 0x000136C0,matched,src/game/trivial/0001.cpp,100.0,
+0x000136D0,matched,src/game/auto/000136D0.cpp,100.0,
 0x000136E0,matched,src/game/auto/000136E0.cpp,100.0,
 0x00013720,matched,src/game/trivial/0001.cpp,100.0,
 0x00013730,matched,src/game/auto/0001.cpp,100.0,
