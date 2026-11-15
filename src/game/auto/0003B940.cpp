@@ -65,7 +65,6 @@ struct Child_0003B940
     void FUN_000574F0();
 };
 
-
 struct TilePair_0003B940
 {
     int unk0;
@@ -188,7 +187,7 @@ public:
     virtual int vfn110();
     virtual void vfn111();
     virtual void vfn112();
-    virtual struct TilePair_0003B940* vfn113();
+    virtual TilePair_0003B940* vfn113();
     virtual void vfn114();
     virtual void vfn115();
     virtual void vfn116();
@@ -222,7 +221,7 @@ public:
     virtual void vfn15();
     virtual void vfn16();
     virtual void vfn17();
-    virtual class Obj_0003B940* vfn18(int id);
+    virtual Obj_0003B940* vfn18(int id);
 };
 
 class Factory_0003B940
@@ -423,7 +422,23 @@ public:
     Part_0003B940* unk10C;
     float unk110;
     char unk114;
-    void* unk118[17];
+    void* unk118;
+    void* unk11C;
+    void* unk120;
+    void* unk124;
+    void* unk128;
+    void* unk12C;
+    void* unk130;
+    void* unk134;
+    void* unk138;
+    void* unk13C;
+    void* unk140;
+    void* unk144;
+    void* unk148;
+    void* unk14C;
+    void* unk150;
+    void* unk154;
+    void* unk158;
     int unk15C;
     int unk160;
     List_0003B940 unk164;
@@ -432,8 +447,7 @@ public:
     EVec3 unk1A4;
     OwnedList_0003B940 unk1B0;
     void* unk1BC;
-    int unk1C0;
-    int unk1C4;
+    TilePair_0003B940 unk1C0;
     short unk1C8;
     int unk1CC;
     int unk1D0;
@@ -489,23 +503,23 @@ Unk80026864::Unk80026864(int player)
     unkDC = 0;
     unkE0 = 0;
     unkE4 = 0;
-    unk118[0] = 0;
-    unk118[1] = 0;
-    unk118[2] = 0;
-    unk118[3] = 0;
-    unk118[4] = 0;
-    unk118[5] = 0;
-    unk118[6] = 0;
-    unk118[7] = 0;
-    unk118[8] = 0;
-    unk118[9] = 0;
-    unk118[10] = 0;
-    unk118[11] = 0;
-    unk118[13] = 0;
-    unk118[12] = 0;
-    unk118[14] = 0;
-    unk118[15] = 0;
-    unk118[16] = 0;
+    unk118 = 0;
+    unk11C = 0;
+    unk120 = 0;
+    unk124 = 0;
+    unk128 = 0;
+    unk12C = 0;
+    unk130 = 0;
+    unk134 = 0;
+    unk138 = 0;
+    unk13C = 0;
+    unk140 = 0;
+    unk144 = 0;
+    unk14C = 0;
+    unk148 = 0;
+    unk150 = 0;
+    unk154 = 0;
+    unk158 = 0;
     unk15C = 0;
     unk160 = 0;
     unkD8 = 0;
@@ -550,7 +564,7 @@ void Unk80026864::FUN_000365B0(unsigned int bits, bool set)
 void Unk80026864::FUN_00124700(const EVec3* position)
 {
     unkBC = *position;
-    parent->FUN_00017C90((int)this, (player != 0) + 0x15);
+    parent->FUN_00017C90((int)this, player == 0 ? 0x15 : 0x16);
 }
 
 // 0x0003B2C0
@@ -587,7 +601,7 @@ void Unk80026864::SetMode(int newMode)
         FUN_00124680(2, 0);
         unkA4 = 6;
         break;
-    case 3: {
+    case 3:
         if (player == 0) {
             FUN_00040D60();
             FUN_0003EA70();
@@ -597,7 +611,6 @@ void Unk80026864::SetMode(int newMode)
             unkA4 = 0;
         }
         break;
-    }
     case 4:
         if (player != 1) {
             break;
@@ -630,15 +643,22 @@ void Unk80026864::FUN_00124940()
         return;
     }
     if (DAT_0030FEC0->FUN_0006F140(player) && Flag1() && DAT_00310CAC->unk101 == 0) {
-        int m = mode;
-        if (m >= 0) {
-            if (m > 7) {
-                if (m == 9 && player == DAT_00310CCC) {
-                    FUN_0003C510();
-                }
-            } else {
-                FUN_0003A8F0();
+        switch (mode) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            FUN_0003A8F0();
+            break;
+        case 9:
+            if (player == DAT_00310CCC) {
+                FUN_0003C510();
             }
+            break;
         }
     }
 }
@@ -658,20 +678,16 @@ void Unk80026864::FUN_00017C90(int sender, int message)
     } else if (message == 0x1C) {
         if (IsBuildMode()) {
             Obj_0003B940* object = DAT_003DCEB0->vfn18(sender);
-            if (object) {
-                if (object->vfn123()) {
-                    if (FUN_00038B40(object, 8)->unk8 != 0) {
-                        object = FUN_00038B40(object, 8)->unk8;
-                    }
+            if (object && object->vfn123()) {
+                if (FUN_00038B40(object, 8)->unk8 != 0) {
+                    object = FUN_00038B40(object, 8)->unk8;
                 }
             }
             if (object && object->vfn53()) {
                 unk1CC = 0;
                 unkAD = 0;
                 unkAC = 1;
-                TilePair_0003B940* tile = object->vfn113();
-                unk1C0 = tile->unk0;
-                unk1C4 = tile->unk4;
+                unk1C0 = *object->vfn113();
                 unk1C8 = object->vfn87(1);
                 int arg = DAT_003DCEA4->vfn13(0x437);
                 Manager_0003B940* manager = DAT_003DCEB0;
