@@ -4,7 +4,18 @@ The trial is issue #1, with the spec `spec/1-virtual-base-thunk-trial.md`. It de
 
 ## Outcome
 
-Not decided. Classes 1, 2 and 3 are whole: the 10 required functions of class 1, the 13 of class 2 and the 9 of class 3 are `matched`, and no function has a blocker, so the stop rule (R6) stops nothing. The constructors need `/GX`, and the default flags gained it after the probe (F-0088, ADR-0017). The callers batch matched 18 of its 20 functions at 32,848 tokens per matched function, which is more than batch 3's 7,557. 0x00137AF0, one of the 47 of F-0080, is `matched`, but it is not a vtable store (F-0102). Issue #10 writes the outcome.
+**No gain.** The maintainer chose this outcome on 2026-11-15, by the spec's Outcomes table (F-0110).
+
+Classes 1, 2 and 3 are whole: the 10 required functions of class 1, the 13 of class 2 and the 9 of class 3 are `matched`. No class has a blocker, so the stop rule (R6) stopped nothing. The constructors need `/GX`, and the default flags gained it after the probe (F-0088, ADR-0017).
+
+The callers batch meets neither condition of a pass:
+
+- It cost 32,848 tokens per matched function, 4.3 times batch 3's 7,557. The figure leaves out the lead's tokens, so the real cost is higher.
+- It matched no vtable-store function of the 47 of F-0080. 0x00137AF0 is on that list and is `matched`, but it does not count: it stores a data address, not a vtable, and it needs the shared header only for the name of its class (F-0102). Of the 57 functions that the trial matched, 13 have 16 bytes or fewer: 11 thunks, operator new 0x000136D0 and 0x00137AF0.
+
+The callers batch cost 340 tokens per matched byte, against batch 3's 445. This does not show a gain. No batch of larger functions without the shared bases has a measured cost, so the lower figure can come from the size of the functions alone, which is a guess. The figure also leaves out the lead's tokens. If the lead's part of the callers batch was more than about 182,000 tokens, the batch costs more per byte than batch 3 too.
+
+What follows, by the Outcomes table: the other thunks wait. A class is declared only when a matcher batch needs it. The search for the next byte shape among larger functions goes ahead. No issue proposes a class-recovery milestone. The shared header gets no ADR, because the comment of 2026-11-15 on issue #1 gives it one only on a pass.
 
 ## Success criteria
 
