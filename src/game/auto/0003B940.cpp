@@ -9,7 +9,6 @@ extern "C" void* memset(void* dest, int c, unsigned int count);
 
 struct ERC;
 
-// Doubly linked list of pointers (first node, last node, "owns its items" flag).
 struct ListBase_0003B940
 {
     ~ListBase_0003B940() { FUN_00142B90(); }
@@ -30,7 +29,8 @@ struct List_0003B940 : ListBase_0003B940
     }
 };
 
-// The second list type of the class: the same layout as the first, and a destructor of its own.
+// The destructor of Unk80026864 unwinds its two lists through two different destructor thunks,
+// 0x00035E50 and 0x00035E60, so the lists are two types.
 struct OwnedList_0003B940 : ListBase_0003B940
 {
     OwnedList_0003B940()
@@ -41,7 +41,6 @@ struct OwnedList_0003B940 : ListBase_0003B940
     }
 };
 
-// Ten words, all zero to begin with.
 struct Words_0003B940
 {
     Words_0003B940() { Clear(); }
