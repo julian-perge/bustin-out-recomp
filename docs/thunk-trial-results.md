@@ -13,9 +13,9 @@ The callers batch meets neither condition of a pass:
 - It cost 32,848 tokens per matched function, 4.3 times batch 3's 7,557. The figure leaves out the lead's tokens, so the real cost is higher.
 - It matched no vtable-store function of the 47 of F-0080. 0x00137AF0 is on that list and is `matched`, but it does not count: it stores a data address, not a vtable, and it needs the shared header only for the name of its class (F-0102). Of the 57 functions that the trial matched, 13 have 16 bytes or fewer: 11 thunks, operator new 0x000136D0 and 0x00137AF0.
 
-The callers batch cost 340 tokens per matched byte, against batch 3's 445. This does not show a gain. No batch of larger functions without the shared bases has a measured cost, so the lower figure can come from the size of the functions alone, which is a guess. The figure also leaves out the lead's tokens. If the lead's part of the callers batch was more than about 182,000 tokens, the batch costs more per byte than batch 3 too.
+The callers batch cost 340 tokens per matched byte, against batch 3's 445. This does not show a gain. No batch of larger functions without the shared bases has a measured cost, so the lower figure can come from the size of the functions alone, which is a guess. The figure also leaves out the lead's tokens. If the lead's part of the callers batch was more than about 181,000 tokens, the batch costs more per byte than batch 3 too.
 
-What follows, by the Outcomes table: the other thunks wait. A class is declared only when a matcher batch needs it. The search for the next byte shape among larger functions goes ahead. No issue proposes a class-recovery milestone. The shared header gets no ADR, because the comment of 2026-11-15 on issue #1 gives it one only on a pass.
+What follows, by the Outcomes table: the other thunks wait. A class is declared only when a matcher batch needs it. The search for the next byte shape among larger functions goes ahead. No issue proposes a class-recovery milestone. The shared header gets no ADR, because the comment of 2026-11-14 on issue #1 gives it one only on a pass.
 
 ## Success criteria
 
@@ -55,7 +55,7 @@ The commands ran on 2026-11-15 at 6a75910, the merge of issue #9. `R` holds the 
         3363
         0
 
-6. **Met, but without the tokens of the lead sessions.** "Batches" has one row for each of the four batches, with the counts, the tokens per matched function and per matched byte next to batch 3's, and the reviewer's verdict. "Tool work (R1)" has the row of the R1 tool work. "Outcome" holds the outcome. The R1 row and the lead's parts of each batch have no token count, because no rule says how the tokens of a lead session are measured.
+6. **Not met for the tokens of the R1 tool work.** "Batches" has one row for each of the four batches, with the counts, the matcher's and the reviewer's tokens as R5 asks, the tokens per matched function and per matched byte next to batch 3's, and the reviewer's verdict. "Outcome" holds the outcome. "Tool work (R1)" has the row of the R1 tool work, but R5 asks for the tokens of that work, and the row has none, because no rule says how the tokens of a lead session are measured. The lead's parts of the batches have no token count for the same reason. R5 does not ask for them.
 
 7. **Does not apply.** The trial did not stop. Every required function of the three classes is `matched`, so no class has a blocker (R6).
 
