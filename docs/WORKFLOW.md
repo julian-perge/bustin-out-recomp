@@ -5,7 +5,7 @@ How to run the tools without rediscovering them. The method is in `docs/METHODOL
 ## The ghidra-mcp server
 
 - Start: `tools/ghidra-mcp-headless.sh` (port 8089, project `ghidra/BustinOut.gpr`). Check it with `curl -s http://127.0.0.1:8089/check_connection`.
-- Stop: `pkill -f GhidraMCPHeadlessServer`.
+- Stop: `pkill -f '[G]hidraMCPHeadlessServer'`. The brackets keep the pattern from matching the shell that runs `pkill`: in a Claude Code Bash call, the plain pattern also stops that shell.
 - Writers: only the lead session or one `namer` agent, recorded as Ghidra writer in the Active block of `docs/STATUS.md` (ADR-0003). `matcher` and `reviewer` have only read-only ghidra-mcp tools, and their instructions forbid the Bash routes that still write (F-0025).
 - `.mcp.json` starts the bridge with `--no-lazy`, so every tool group is registered when it connects. A group loaded later with `load_tool_group` never reaches a subagent that is already running (F-0023). Use `search_tools` with keywords to find a tool.
 - The headless server opens no program. Pass `program="default.xbe"` to every ghidra-mcp tool call (F-0024).
