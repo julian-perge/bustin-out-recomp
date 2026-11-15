@@ -4,7 +4,7 @@ The trial is issue #1, with the spec `spec/1-virtual-base-thunk-trial.md`. It de
 
 ## Outcome
 
-Not decided. No class has run yet. The probe below found no blocker that stops the trial (R6), with one condition: the constructors need `/GX`, which is not a default flag (F-0088).
+Not decided. No class has run yet. The probe below found no blocker that stops the trial (R6). The constructors need `/GX`, and the default flags gained it after the probe (F-0088, ADR-0017).
 
 ## Batches
 
@@ -32,7 +32,7 @@ Two risks would stop the whole trial, so a scratch skeleton of class 1 checked t
 
 ### Thunks
 
-VC71 emits the three thunks with the original bytes at the default flags `/O2 /G7 /arch:SSE` (F-0087).
+VC71 emits the three thunks with the original bytes, at `/O2 /G7 /arch:SSE` and with `/GX` added (F-0087).
 
 | Address | Original | Built | Built jump names |
 |---|---|---|---|
@@ -44,7 +44,7 @@ VC71 emits the three thunks with the original bytes at the default flags `/O2 /G
 
 ### Exception-handling chain
 
-At the default flags VC71 emits no exception-handling frame, so the constructor cannot match. With `/GX` added it emits the frame, and the chain compares equal (F-0088).
+At `/O2 /G7 /arch:SSE`, the default flags when the probe ran, VC71 emits no exception-handling frame, so the constructor cannot match. With `/GX` added it emits the frame, and the chain compares equal (F-0088).
 
     flags: /O2 /G7 /arch:SSE
     0x00047D20 nonmatching   1.0  first difference at +0x0, target 404 bytes, built 129 bytes
@@ -66,4 +66,4 @@ The first 0x18 bytes are the frame setup: `push -1`, the push of the handler, th
 
 Before this task the resolver could not finish that check. `bodecomp.match` got three rules for it (F-0089).
 
-With `/GX` added to the default flags, every claimed source gives the same row as before: 3306 matched, 3 parked, and `config/functions.csv` is equal.
+With `/GX` added, every claimed source gives the same row as before: 3306 matched, 3 parked, and `config/functions.csv` is equal. The maintainer chose on 2026-11-15 to make `/GX` a default flag (ADR-0017).
