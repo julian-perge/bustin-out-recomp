@@ -63,7 +63,7 @@ Rules for a name:
 
 ## Matching
 
-`uv run python -m bodecomp.match` compiles every `src/**/*.cpp` except `src/m0` with VC71 at the default flags (ADR-0004), compares each function with its target unit in `build/target/units/`, prints one line per function and writes `config/functions.csv`. `--check` fails when the CSV is stale. `uv run python -m bodecomp.match candidates N` lists N unlisted game functions (not `sdk`), fewest relocations first, then smallest; `--min-size` (default 16) skips smaller units, and `--min-relocs` skips units with fewer relocations.
+`uv run python -m bodecomp.match` compiles every `src/**/*.cpp` except `src/m0` with VC71 at the default flags `/O2 /G7 /arch:SSE /GX` (ADR-0004, ADR-0017), compares each function with its target unit in `build/target/units/`, prints one line per function and writes `config/functions.csv`. `--check` fails when the CSV is stale. `uv run python -m bodecomp.match candidates N` lists N unlisted game functions (not `sdk`), fewest relocations first, then smallest; `--min-size` (default 16) skips smaller units, and `--min-relocs` skips units with fewer relocations.
 
 A source function is paired with its target by an address comment on the line before its definition. A parked function adds its blocker class on the next line:
 

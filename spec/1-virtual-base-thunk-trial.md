@@ -119,7 +119,7 @@ Order: class 1, class 2, class 3. Each class is one matcher run and one reviewer
 
 ## Tech stack
 
-VC71 `CL.Exe` under wibo with `/O2 /G7 /arch:SSE` (ADR-0004). Python with uv. Ghidra 12.2 through ghidra-mcp, read-only for matcher and reviewer (ADR-0003).
+VC71 `CL.Exe` under wibo with `/O2 /G7 /arch:SSE /GX` (ADR-0004, ADR-0017). Python with uv. Ghidra 12.2 through ghidra-mcp, read-only for matcher and reviewer (ADR-0003).
 
 ## Commands
 

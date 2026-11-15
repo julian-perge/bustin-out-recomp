@@ -5,6 +5,7 @@ import pytest
 from bodecomp.cl import CL, WIBO, CompileResult, compile_cpp
 from bodecomp.coff import Reloc, parse
 from bodecomp.match import (
+    FLAGS,
     Resolver,
     candidates,
     compare,
@@ -331,6 +332,19 @@ def test_definitions_are_found_among_vc71_decorated_names():
         "?Free@@YAHXZ",
         "_Plain",
     ]
+
+
+@needs_toolchain
+def test_default_flags_emit_an_exception_handling_frame():
+    source = Path("build/test-match/frame.cpp")
+    (ROOT / source).parent.mkdir(parents=True, exist_ok=True)
+    (ROOT / source).write_text(
+        "struct M { M(); ~M(); };\nvoid g();\nvoid f() { M m; g(); }\n"
+    )
+    result = compile_cpp(ROOT, source, source.with_suffix(".obj"), FLAGS)
+    assert result.ok, result.log
+    names = [s.name for s in parse((ROOT / result.output).read_bytes()).symbols]
+    assert "__ehhandler$?f@@YAXXZ" in names
 
 
 def test_relocation_of_another_type_does_not_match():

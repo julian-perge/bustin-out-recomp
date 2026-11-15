@@ -23,7 +23,7 @@ UNIT_DIR = Path("build/target/units")
 TARGET_SYMBOLS = Path("build/target/symbols.tsv")
 BUILD = Path("build/match")
 XBE = Path("orig/default.xbe")
-FLAGS = ("/O2", "/G7", "/arch:SSE")
+FLAGS = ("/O2", "/G7", "/arch:SSE", "/GX")
 HEADER = ("address", "status", "source", "score", "detail")
 BLOCKERS = (
     "source shape",
