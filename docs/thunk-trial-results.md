@@ -1,10 +1,52 @@
 # Virtual-base thunk trial results
 
-The trial is issue #1, with the spec `spec/1-virtual-base-thunk-trial.md`. It declares three classes of one virtual-base family for real, lets VC71 emit their thunks, and then runs one matcher batch on code that uses the same bases. This file holds the batch table, the cost of the tool work, the probe that came before the classes, and the outcome (R5 of the spec).
+The trial is issue #1, with the spec `spec/1-virtual-base-thunk-trial.md`. It declares three classes of one virtual-base family for real, lets VC71 emit their thunks, and then runs one matcher batch on code that uses the same bases. This file holds the batch table, the cost of the tool work, the probe that came before the classes, the outcome (R5 of the spec) and the check of the spec's success criteria.
 
 ## Outcome
 
 Not decided. Classes 1, 2 and 3 are whole: the 10 required functions of class 1, the 13 of class 2 and the 9 of class 3 are `matched`, and no function has a blocker, so the stop rule (R6) stops nothing. The constructors need `/GX`, and the default flags gained it after the probe (F-0088, ADR-0017). The callers batch matched 18 of its 20 functions at 32,848 tokens per matched function, which is more than batch 3's 7,557. 0x00137AF0, one of the 47 of F-0080, is `matched`, but it is not a vtable store (F-0102). Issue #10 writes the outcome.
+
+## Success criteria
+
+The commands ran on 2026-11-15 at 6a75910, the merge of issue #9. `R` holds the 32 required addresses of R3: 10 of class 1, 13 of class 2 and 9 of class 3.
+
+    R='0x(00047D20|000474C0|00047ED0|00047CE0|00047CF0|00047D00|00047520|00047D10|00047540|00047A10|0003B940|0003B230|0003B360|0003B2D0|0003B2E0|0003B2F0|00036670|0003B300|0003C620|0003B2C0|00036570|00038D00|000365B0|000A80B0|000ACA40|000ACB50|000ACA10|000ACA20|000ACA30|000A8180|000A8220|000A8C40)'
+
+1. **Met.** The full suite passes. The five R1 cases of the spec's testing strategy are `test_claimed_thunk_with_a_matched_target_is_matched`, `test_claimed_thunk_with_one_different_byte_is_nonmatching`, `test_claimed_thunk_whose_target_is_nonmatching_is_not_matched`, `test_claim_that_the_check_never_reached_is_an_error` and `test_source_without_claims_gives_only_the_rows_of_its_address_comments` in `tests/test_match.py`.
+
+        $ uv run pytest -q tests/test_match.py -k '<the five names, joined with or>'
+        5 passed, 74 deselected in 0.07s
+        $ uv run pytest -q
+        340 passed in 15.42s
+
+2. **Met.** Each class's required addresses are `matched` from the source of that class, and `match --check` passes. A list of the 32 rows, one by one, gave the same sources.
+
+        $ grep -E "^$R," config/functions.csv | cut -d, -f2,3 | sort | uniq -c
+             13 matched,src/game/auto/0003B940.cpp
+             10 matched,src/game/auto/00047D20.cpp
+              9 matched,src/game/auto/000A80B0.cpp
+        $ uv run python -m bodecomp.match --check
+        3363 matched, 0 nonmatching, 5 parked, 0 error
+
+3. **Met.** No file in `src/game/trivial/` holds a required address.
+
+        $ rg -c "$R\b" src/game/trivial/; echo "exit $?"
+        exit 1
+
+4. **Not met for the callers batch.** The reviewer passes of classes 1 and 2 are clean. The reviewer pass of class 3 is clean for its 9 required functions. It failed the five empty bodies of the large overrides, which R3 does not require, and the lead replaced them with `declared` lines (F-0098). The reviewer pass of the callers batch is not clean: it failed three source forms and matched 0x000E3280 with the donor's form. The lead applied the reviewer's forms in four commits. The review of pull request #18 read all seven commits and found no problem in the sources. A reviewer's verdict is in its report and not in command output. The sections "Class 1" to "Callers" below record each verdict.
+
+5. **Met.** None of the 3306 functions that were `matched` before the trial lost its match, so no count of the functions outside the trial can fall. 025508c is the merge of issue #5, before the first class. Three functions moved from `src/game/trivial/` to a class source, as R3 asks: 0x00047D10, 0x0003B300 and 0x0003B2C0. They are still `matched`.
+
+        $ git show 025508c:config/functions.csv | awk -F, '$2=="matched"{print $1}' | sort > before
+        $ awk -F, '$2=="matched"{print $1}' config/functions.csv | sort > now
+        $ wc -l < before; wc -l < now; comm -23 before now | wc -l
+        3306
+        3363
+        0
+
+6. **Met, but without the tokens of the lead sessions.** "Batches" has one row for each of the four batches, with the counts, the tokens per matched function and per matched byte next to batch 3's, and the reviewer's verdict. "Tool work (R1)" has the row of the R1 tool work. "Outcome" holds the outcome. The R1 row and the lead's parts of each batch have no token count, because no rule says how the tokens of a lead session are measured.
+
+7. **Does not apply.** The trial did not stop. Every required function of the three classes is `matched`, so no class has a blocker (R6).
 
 ## Batches
 
