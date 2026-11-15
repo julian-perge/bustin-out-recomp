@@ -853,7 +853,7 @@ address,status,source,score,detail
 0x000BB3E0,matched,src/game/trivial/000B.cpp,100.0,
 0x000BB3F0,matched,src/game/trivial/000B.cpp,100.0,
 0x000BB400,matched,src/game/trivial/000B.cpp,100.0,
-0x000BD710,parked,src/game/auto/000BD710.cpp,79.9,scheduling
+0x000BD710,parked,src/game/auto/000BD710.cpp,83.7,scheduling
 0x000BD8D0,matched,src/game/auto/000BD710.cpp,100.0,
 0x000BD900,matched,src/game/trivial/000B.cpp,100.0,
 0x000BD910,matched,src/game/auto/000BD710.cpp,100.0,

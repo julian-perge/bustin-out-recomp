@@ -113,11 +113,13 @@ Unk_000BD710::Unk_000BD710(int player) : unk48(-1, -1, 0.05f, 0.0f, 0.0f, -1, -1
 {
     float zero = 0.0f;
     float one = DAT_002E33F8;
+    float two = DAT_002E2394;
     unk178 = one;
     unk17C = one;
-    unk180 = DAT_002E2394;
     unk184 = unk188 = unk18C = zero;
-    unk164 = unk168 = zero;
+    unk180 = two;
+    unk164 = zero;
+    unk168 = zero;
     unk16C = 0;
     this->player = player;
     SetFlags(2, false);
@@ -127,9 +129,9 @@ Unk_000BD710::Unk_000BD710(int player) : unk48(-1, -1, 0.05f, 0.0f, 0.0f, -1, -1
     unk178 = one;
     unk17C = one;
     unk180 = DAT_002E2394;
-    unk190 = DAT_002E2514;
     unk194 = 0;
     unk170 = 0;
+    unk190 = DAT_002E2514;
     FUN_000BA740(&DAT_00321760[this->player], 1);
 }
 
