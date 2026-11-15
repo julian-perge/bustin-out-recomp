@@ -4,6 +4,11 @@
 // declared: 0x000A0DD0 S_000A1B00::~S_000A1B00
 // declared: 0x0009F540 S_0009F540::S_0009F540
 // declared: 0x0009BAB0 S_0009F540::~S_0009F540
+// declared: 0x000A8720 S_000A80B0::FUN_00124940
+// declared: 0x000ADA10 S_000A80B0::FUN_00124980
+// declared: 0x000A8CC0 S_000A80B0::FUN_00017C90
+// declared: 0x000A9CF0 S_000A80B0::FUN_00017CB0
+// declared: 0x000AAEC0 S_000A80B0::FUN_00017CC0
 
 // generated: 0x000ACA10
 // generated: 0x000ACA20
@@ -182,39 +187,4 @@ void S_000A80B0::FUN_000A8C40()
     delete unk24C4;
     unk24C4 = 0;
     DAT_00310C28->FUN_000FE8D0(this);
-}
-
-// The five functions below only give their vtable slots the addresses of the original. The
-// constructor and the destructor store the vtable, and a declared slot named after the base
-// function would resolve to the base's address. The bodies are not attempts.
-
-// 0x000A8720
-// parked: unclassified
-void S_000A80B0::FUN_00124940()
-{
-}
-
-// 0x000ADA10
-// parked: unclassified
-void S_000A80B0::FUN_00124980(ERC* rc)
-{
-}
-
-// 0x000A8CC0
-// parked: unclassified
-void S_000A80B0::FUN_00017C90(int sender, int message)
-{
-}
-
-// 0x000A9CF0
-// parked: unclassified
-void S_000A80B0::FUN_00017CB0(int a1, int a2)
-{
-}
-
-// 0x000AAEC0
-// parked: unclassified
-int S_000A80B0::FUN_00017CC0(int a1)
-{
-    return 0;
 }
