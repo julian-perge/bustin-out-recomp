@@ -31,4 +31,4 @@ if ! grep -q 'functions created' "$LOG"; then
   grep -A 30 'SCRIPT ERROR' "$LOG" >&2 || tail -40 "$LOG" >&2
   exit 1
 fi
-grep 'functions created' "$LOG" | sed 's/^.*> //; s/ (GhidraScript) *$//'
+grep 'removed function\|functions created' "$LOG" | sed 's/^.*> //; s/ (GhidraScript) *$//'

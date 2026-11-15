@@ -1,8 +1,11 @@
 //Creates a function at each listed address that is not already inside one, then
 //runs auto-analysis on the changes. Arguments: a file with a hex address at the
 //start of each line, a file to write each rejected address and its reason to,
-//and optionally the word "starts", which also rejects as missing every listed
-//address that does not end up as a function start.
+//and optionally the word "starts". With "starts" the list is every function
+//start of symbols.txt: a listed address inside another function's body becomes
+//a function of its own, every function that the list does not hold is removed,
+//and every listed address that does not end up as a function start is rejected
+//as missing.
 //@category Project
 
 import java.io.File;
@@ -19,9 +22,11 @@ import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.listing.BookmarkManager;
 import ghidra.program.model.listing.BookmarkType;
+import ghidra.program.model.listing.Data;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.Instruction;
 import ghidra.program.model.listing.Listing;
+import ghidra.program.model.symbol.ReferenceManager;
 
 public class CreateFunctions extends GhidraScript {
 	@Override
@@ -43,11 +48,22 @@ public class CreateFunctions extends GhidraScript {
 		// up lays down the real instructions first, and an address that lands inside
 		// one of them, or inside an existing function's instruction, is rejected.
 		offsets.sort(Long::compare);
+		boolean starts = args.length > 2 && args[2].equals("starts");
 		AddressSet listedCode = new AddressSet();
 		List<Address> accepted = new ArrayList<>();
 		for (long offset : offsets) {
 			Address start = toAddr(offset);
-			if (getFunctionContaining(start) != null) {
+			Function owner = getFunctionContaining(start);
+			// A start from symbols.txt can sit in the body of another function when
+			// the analysis followed jumps into it, as with __fast_exit 0x00223652 in
+			// FUN_00220a24 on Ghidra 12.2. Ghidra's CreateFunctionCmd then moves the
+			// new function's addresses out of the other function's body.
+			if (owner != null && starts && !owner.getEntryPoint().equals(start)
+				&& listing.getInstructionAt(start) != null) {
+				accepted.add(start);
+				continue;
+			}
+			if (owner != null) {
 				present++;
 				continue;
 			}
@@ -69,7 +85,7 @@ public class CreateFunctions extends GhidraScript {
 			// are removed and the candidate is disassembled once more.
 			if (!attempt.errors().isEmpty()) {
 				undo(attempt);
-				clearStrayCode(start);
+				clearStrayCode(start, starts);
 				attempt = attemptAt(start);
 			}
 			// The disassembler marks bytes that do not decode with an error
@@ -121,7 +137,33 @@ public class CreateFunctions extends GhidraScript {
 		// from a vtable that points to it, so an address counts as rejected only
 		// if it is still not the start of a function afterwards.
 		rejected.removeIf(line -> getFunctionAt(toAddr(Long.parseLong(line.split(" ")[0], 16))) != null);
-		if (args.length > 2 && args[2].equals("starts")) {
+		// symbols.txt lists every function of the project, so in "starts" mode a
+		// function that it does not list is removed, and the function that the
+		// instruction before it belongs to gets its body recomputed. On Ghidra 12.2
+		// the analysis splits GetLoadBarVariable 0x000975F0 at the target of its
+		// own jump, 0x000975FF (F-0040). The log names each removed function.
+		int removed = 0;
+		if (starts) {
+			Set<Long> listedOffsets = new HashSet<>(offsets);
+			List<Function> unlisted = new ArrayList<>();
+			for (Function f : currentProgram.getFunctionManager().getFunctions(true)) {
+				if (!listedOffsets.contains(f.getEntryPoint().getOffset())) {
+					unlisted.add(f);
+				}
+			}
+			for (Function f : unlisted) {
+				Address entry = f.getEntryPoint();
+				removeFunction(f);
+				removed++;
+				println(String.format("removed function %08X", entry.getOffset()));
+				Instruction before = listing.getInstructionContaining(entry.previous());
+				Function owner = before == null ? null : getFunctionContaining(before.getMinAddress());
+				if (owner != null) {
+					CreateFunctionCmd.fixupFunctionBody(currentProgram, owner, monitor);
+				}
+			}
+		}
+		if (starts) {
 			Set<String> listed = new HashSet<>();
 			for (String line : rejected) {
 				listed.add(line.split(" ")[0]);
@@ -135,7 +177,7 @@ public class CreateFunctions extends GhidraScript {
 		}
 		Files.write(new File(args[1]).toPath(), rejected);
 		println("functions created " + created + ", already present " + present
-			+ ", rejected " + rejected.size() + ", total "
+			+ ", removed " + removed + ", rejected " + rejected.size() + ", total "
 			+ currentProgram.getFunctionManager().getFunctionCount());
 	}
 
@@ -181,8 +223,11 @@ public class CreateFunctions extends GhidraScript {
 	}
 
 	// Removes the instructions that belong to no function from the one covering
-	// start up to the next function or the end of the memory block.
-	private void clearStrayCode(Address start) {
+	// start up to the next function or the end of the memory block. For a start
+	// from symbols.txt it also removes data that nothing references in the same
+	// range: on Ghidra 12.2 the analysis made a pointer at 0x0009E22C from the
+	// operand of a call in FUN_0009c6b0, and the pointer stopped the disassembly.
+	private void clearStrayCode(Address start, boolean starts) {
 		Listing listing = currentProgram.getListing();
 		Address end = getMemoryBlock(start).getEnd();
 		Function next = getFunctionAfter(start);
@@ -199,6 +244,19 @@ public class CreateFunctions extends GhidraScript {
 		}
 		for (Instruction i : stray) {
 			listing.clearCodeUnits(i.getMinAddress(), i.getMaxAddress(), false);
+		}
+		if (!starts) {
+			return;
+		}
+		ReferenceManager references = currentProgram.getReferenceManager();
+		List<Data> unreferenced = new ArrayList<>();
+		for (Data d : listing.getDefinedData(new AddressSet(from, end), true)) {
+			if (!references.hasReferencesTo(d.getMinAddress())) {
+				unreferenced.add(d);
+			}
+		}
+		for (Data d : unreferenced) {
+			listing.clearCodeUnits(d.getMinAddress(), d.getMaxAddress(), false);
 		}
 	}
 }
