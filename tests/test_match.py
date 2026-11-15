@@ -743,6 +743,20 @@ def test_declared_line_takes_no_free_function_or_operator(tmp_path):
     )
 
 
+def test_declared_member_name_is_made_of_identifiers(tmp_path):
+    names = ["Foo::operator=", "Foo::~Bar", "::Bar", "Foo::Bar extra"]
+    lines = "".join(f"// declared: 0x00011010 {n}\n" for n in names)
+    root = project(tmp_path, lines + CLAIM)
+    start = (
+        "src/game/a.cpp:{}: declared takes only a constructor, a destructor "
+        "or a member function, not {}"
+    )
+    assert declared_run(root) == (
+        [],
+        [start.format(i, n) for i, n in enumerate(names, 1)],
+    )
+
+
 def test_declared_line_without_an_eight_digit_address_is_a_problem(tmp_path):
     root = project(tmp_path, "// declared: 0x11010 Foo::Foo\n" + CLAIM)
     problem = "src/game/a.cpp:1: declared needs an 8-digit 0xADDRESS and a name"
