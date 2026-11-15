@@ -124,7 +124,10 @@ S_000A80B0::~S_000A80B0()
 void S_000A80B0::SetMode(int newMode)
 {
     mode = newMode;
-    if (newMode == 8 || (newMode > 9 && newMode <= 11)) {
+    switch (newMode) {
+    case 8:
+    case 10:
+    case 11:
         if (unk24BC == 4) {
             buy.FUN_00124680(4, true);
             buy.FUN_000A0A10();
@@ -133,9 +136,12 @@ void S_000A80B0::SetMode(int newMode)
             build.FUN_00124680(4, true);
             build.FUN_0009AB90();
             build.FUN_0009AB20(0);
-        } else if (unk24BC != 12 && unk24BC == 0) {
-            unk24BC = 1;
+        } else if (unk24BC != 12) {
+            if (unk24BC == 0) {
+                unk24BC = 1;
+            }
         }
+        break;
     }
 }
 
