@@ -17,26 +17,26 @@ public:
     float FUN_00124C40(int axis, int stick);
 };
 
-class EControllerList
+class ControllerList_00047D20
 {
 public:
     int FUN_00125F50(int player);
     EController* FUN_00125F30(int index);
 };
 
-class ESound
+class Sound_00047D20
 {
 public:
     void FUN_0006B050(unsigned int name);
 };
 
-class ELocator
+class Locator_00047D20
 {
 public:
     bool FUN_000703D0();
 };
 
-class EPlayerInfo
+class PlayerInfo_00047D20
 {
 public:
     virtual void vfn0();
@@ -61,33 +61,33 @@ public:
     virtual void vfn19();
     virtual int vfn20();
     virtual void vfn21();
-    virtual struct ECarried* vfn22();
+    virtual struct Carried_00047D20* vfn22();
 };
 
-struct ECarried
+struct Carried_00047D20
 {
     int FUN_001C02C0();
 };
 
-class EDialogs
+class Dialogs_00047D20
 {
 public:
     void FUN_001B91E0(int a);
     bool FUN_001B9280(int a);
 };
 
-struct EPauseHook
+struct PauseHook_00047D20
 {
     void FUN_000E61B0();
 };
 
-struct EOptions
+struct Options_00047D20
 {
     char pad0[2];
     char kind;
 };
 
-struct EGlobalState
+struct GlobalState_00047D20
 {
     char pad0[0x14C];
     int unk14C;
@@ -98,7 +98,7 @@ void FUN_00189480(int a);
 
 class Unk8003AA6C;
 
-struct EScreenSlot
+struct ScreenSlot_00047D20
 {
     char pad0[0x44];
     int unk44;
@@ -106,31 +106,30 @@ struct EScreenSlot
     int unk10C;
 };
 
-struct EScreens
+struct Screens_00047D20
 {
     char pad0[0x148];
     Unk8003AA6C* screens[2];
-    EScreenSlot* slots[2];
+    ScreenSlot_00047D20* slots[2];
 };
 
-extern EControllerList* DAT_0035D3F0;
-extern ESound* DAT_00310B3C;
-extern ELocator DAT_00310B98;
+extern ControllerList_00047D20* DAT_0035D3F0;
+extern Sound_00047D20* DAT_00310B3C;
+extern Locator_00047D20 DAT_00310B98;
 extern EVec2 DAT_0031F810;
 extern int DAT_00310CCC;
-extern EPlayerInfo* DAT_00310C34[];
+extern PlayerInfo_00047D20* DAT_00310C34[];
 extern int DAT_003DCECC;
-extern EScreens* DAT_00310C54;
+extern Screens_00047D20* DAT_00310C54;
 extern char DAT_003DCEE0;
 extern int DAT_003DCED4;
 extern int DAT_00310CC4;
 extern int DAT_003DCEDC;
-extern EGlobalState* DAT_0035D3C0;
-extern EDialogs* DAT_00310CB8;
-extern EPauseHook DAT_00321C40;
-extern EOptions* DAT_00310CB0;
+extern GlobalState_00047D20* DAT_0035D3C0;
+extern Dialogs_00047D20* DAT_00310CB8;
+extern PauseHook_00047D20 DAT_00321C40;
+extern Options_00047D20* DAT_00310CB0;
 
-class Unk8003AA6C;
 typedef void (Unk8003AA6C::*Unk8003AA6CDraw)(ERC* rc, const EVec2& at);
 
 class Unk8003AA6C : public UnkTargetBase, public virtual Unk802A2AC0
@@ -143,6 +142,7 @@ public:
     virtual void SetMode(int newMode);
     virtual void vfn2(int a1, int a2);
 
+    void FUN_00047B30(ERC* rc);
     void FUN_00047B70(ERC* rc, const EVec2& at);
     void FUN_00047BD0(ERC* rc, const EVec2& at);
     void FUN_00047C10(ERC* rc, const EVec2& at);
@@ -201,7 +201,7 @@ void Unk8003AA6C::FUN_00124940()
         DAT_00310B3C->FUN_0006B050(0x048AE94F);
         return;
     }
-    EPlayerInfo* info = DAT_00310C34[player];
+    PlayerInfo_00047D20* info = DAT_00310C34[player];
     if (mode == 2) {
         if (DAT_003DCECC) {
             if (DAT_00310C54->slots[player]->unk10C == 0) {

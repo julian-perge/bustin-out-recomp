@@ -28,18 +28,18 @@ public:
     virtual void FUN_00124940();
     virtual void FUN_00124980(struct ERC* rc);
     virtual void FUN_00124700(const EVec3* position);
-    virtual void FUN_00017C70();
-    virtual void FUN_00017C50();
+    virtual void FUN_00017C70(const EVec2* a1);
+    virtual void FUN_00017C50(const EVec3* a1);
     virtual void FUN_00017C90(int sender, int message);
-    virtual void FUN_00017CB0();
-    virtual void FUN_00017CC0();
-    virtual void FUN_00017CD0();
-    virtual void FUN_00017CE0();
-    virtual void FUN_00017CF0();
-    virtual void FUN_00017D00();
-    virtual void FUN_001247C0();
-    virtual void FUN_001247E0();
-    virtual void FUN_001245D0();
+    virtual void FUN_00017CB0(int a1, int a2);
+    virtual int FUN_00017CC0(int a1);
+    virtual void FUN_00017CD0(int a1, int a2);
+    virtual void FUN_00017CE0(int a1);
+    virtual void FUN_00017CF0(int a1, int a2, int a3);
+    virtual EVec3* FUN_00017D00();
+    virtual void FUN_001247C0(UnkTargetBase* child);
+    virtual void FUN_001247E0(UnkTargetBase* child);
+    virtual void FUN_001245D0(int a1, char a2);
     virtual void FUN_00124600();
 
     // The destructor destroys this member with the function at 0x00142B90.
