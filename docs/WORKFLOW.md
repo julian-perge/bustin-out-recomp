@@ -21,6 +21,7 @@ How to run the tools without rediscovering them. The method is in `docs/METHODOL
 ## Delink and re-link
 
 - `tools/delink.sh` writes `build/target/text.obj`, the delinker tables `build/target/relocs.tsv` and `build/target/symbols.tsv`, and one object per unit to `build/target/units/` (ADR-0006). Stop the server first; both open the same project.
+- Run `uv run python -m bodecomp.split` before each delink. `tools/delink.sh` cuts the units that `build/target/units.txt` lists and does not write that file, so a list from before a change to the function starts in `config/symbols.txt` gives wrong units, and the re-link gate does not notice (F-0085).
 - After a delinker update, check the split against the delinker itself: run `ExportUnits.java` headless on a copy of the project into a folder, then `uv run python -m bodecomp.unitsplit --compare <folder>`. It must report 0 objects differ.
 - `uv run python -m bodecomp.relink` must report 0 mismatched bytes, 0 unresolved names and 0 unit problems (ADR-0006).
 
