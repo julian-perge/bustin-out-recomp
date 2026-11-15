@@ -590,3 +590,9 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: test (the function starts of `config/symbols.txt` at 742e585 against `build/target/units.txt`, 2026-11-14); relink run
 - Evidence: `tools/delink.sh` cuts the units that `build/target/units.txt` lists and checks only that the file exists. `uv run python -m bodecomp.split` writes that file, and no tool runs it. The delink of 2026-10-12 used the list of 2026-10-11, from before commit 660a645 created 0x0009C6B0 and 0x000ADA10 and removed the start at 0x000975FF. Until 2026-11-14 the units 0x000975F0, 0x0009BB20 and 0x000ACB80 had the wrong ends, 0x0009C6B0 and 0x000ADA10 had no unit, and 0x000975FF had one. `bodecomp.relink` reported 0 unit problems all that time, because it compares the objects with the same list. No claimed function was in these units. The delink for issue #2 ran `bodecomp.split` first, so the units match `config/symbols.txt` at 067ddf7.
 - Next: make `tools/delink.sh` write the units list itself, or make `bodecomp.relink` compare the list with `config/symbols.txt`.
+
+## F-0086 A declared line cannot tell two constructors of one class apart
+- Status: open
+- Checked: test test_one_declared_name_with_two_addresses_is_a_problem
+- Evidence: `bodecomp.match` resolves an external constructor or destructor through a `// declared: 0xADDRESS Class::Class` line (issue #3, `docs/WORKFLOW.md`, "Matching"). The line holds a name, and `decorated_prefixes` turns `Class::Class` into the one prefix `??0Class@@`, which every constructor of the class starts with. `scan` reports one name with two addresses as a problem, so a class with two constructors that are not matched cannot declare both. It is not checked whether a class of the thunk trial has two such constructors.
+- Next: when a source calls two constructors of one class that are not matched, let the line take the decorated name of one constructor.

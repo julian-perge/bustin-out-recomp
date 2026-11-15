@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -38,6 +39,9 @@ EXECUTABLE = 0x20000000
 
 ADDRESS_LINE = re.compile(r"^//\s*0x([0-9A-Fa-f]{8})\s*$")
 PARKED_LINE = re.compile(r"^//\s*parked:\s*(.+?)\s*$")
+DECLARED_LINE = re.compile(r"^//\s*declared:\s*(.*?)\s*$")
+DECLARED_BODY = re.compile(r"0x([0-9A-Fa-f]{8})\s+(.+)")
+INCLUDE_LINE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
 AUTO_ADDRESS = re.compile(r"^(?:FUN|DAT|LAB)_([0-9A-Fa-f]{8})$")
 OPERATOR = re.compile(r"((?:\w+::)*)operator\s+(new|delete)\s*$")
 OPERATOR_CODES = {"operator new": "??2", "operator delete": "??3"}
@@ -49,6 +53,13 @@ class Marked:
     source: Path
     name: str
     parked: str
+
+
+@dataclass(frozen=True)
+class Declared:
+    address: int
+    name: str
+    where: str
 
 
 @dataclass(frozen=True)
@@ -111,6 +122,38 @@ def decorated_prefixes(name: str) -> tuple[str, ...]:
     return (f"?{leaf}@@", f"_{leaf}")
 
 
+def read_declared(root: Path, source: Path) -> tuple[list[Declared], list[str]]:
+    found, problems = [], []
+    seen: set[Path] = set()
+    queue = [source]
+    while queue:
+        path = queue.pop(0)
+        if path in seen or not (root / path).is_file():
+            continue
+        seen.add(path)
+        for i, line in enumerate((root / path).read_text().splitlines(), 1):
+            if include := INCLUDE_LINE.match(line):
+                # A quoted include is read from the folder of the file that
+                # includes it, which is where VC71 looks first.
+                queue.append(Path(os.path.normpath(path.parent / include.group(1))))
+            if not (m := DECLARED_LINE.match(line.strip())):
+                continue
+            body = DECLARED_BODY.fullmatch(m.group(1))
+            if not body:
+                problems.append(
+                    f"{path}:{i}: declared needs an 8-digit 0xADDRESS and a name"
+                )
+            elif decorated_prefixes(body.group(2))[0][:3] not in ("??0", "??1"):
+                problems.append(
+                    f"{path}:{i}: declared takes only a constructor or destructor, "
+                    f"not {body.group(2)}"
+                )
+            else:
+                address = int(body.group(1), 16)
+                found.append(Declared(address, body.group(2), f"{path}:{i}"))
+    return found, problems
+
+
 def defined_function(coff: Coff, name: str) -> Symbol:
     prefixes = decorated_prefixes(name)
     hits = [
@@ -145,10 +188,12 @@ class Resolver:
         addresses: dict[str, int],
         entries: list[Entry],
         xbe: Xbe,
+        declared: dict[str, int] | None = None,
     ):
         self.coff = coff
         self.addresses = addresses
         self.xbe = xbe
+        self.declared = declared or {}
         self.by_name: dict[str, list[int]] = {}
         for e in entries:
             self.by_name.setdefault(e.name, []).append(e.address)
@@ -156,6 +201,9 @@ class Resolver:
     def external(self, name: str) -> int:
         if name in self.by_name and len(self.by_name[name]) == 1:
             return self.by_name[name][0]
+        for prefix, address in self.declared.items():
+            if name.startswith(prefix):
+                return address
         path = scope_path(name)
         leaf = path.split("::")[-1] if path else ""
         if m := AUTO_ADDRESS.match(leaf):
@@ -345,6 +393,9 @@ def read_target_table(path: Path) -> dict[str, int]:
 
 def scan(root: Path) -> tuple[list[Marked], list[str]]:
     marked, problems = [], []
+    # Two sources can include one header, so its lines and problems are kept once.
+    declared: dict[str, Declared] = {}
+    misdeclared: dict[str, None] = {}
     for path in sorted((root / SRC).rglob("*.cpp")):
         rel = path.relative_to(root)
         if any(rel.is_relative_to(s) for s in SKIP):
@@ -352,6 +403,9 @@ def scan(root: Path) -> tuple[list[Marked], list[str]]:
         found, bad = scan_source(rel, path.read_text())
         marked += found
         problems += bad
+        lines, bad = read_declared(root, rel)
+        declared.update((d.where, d) for d in lines)
+        misdeclared.update(dict.fromkeys(bad))
     seen: dict[int, Path] = {}
     for m in marked:
         if m.address in seen:
@@ -359,6 +413,15 @@ def scan(root: Path) -> tuple[list[Marked], list[str]]:
                 f"0x{m.address:08X} is claimed by {seen[m.address]} and {m.source}"
             )
         seen[m.address] = m.source
+    problems += misdeclared
+    first: dict[str, Declared] = {}
+    for d in declared.values():
+        other = first.setdefault(d.name, d)
+        if other.address != d.address:
+            problems.append(
+                f"{d.name} is declared at 0x{other.address:08X} in {other.where} "
+                f"and at 0x{d.address:08X} in {d.where}"
+            )
     return marked, problems
 
 
@@ -407,7 +470,10 @@ def check_source(
         except Unresolved as error:
             results.append(Result(m.address, "error", source, "", str(error)))
     addresses = {s.name: m.address for m, s in symbols.items()}
-    resolver = Resolver(coff, addresses, entries, xbe)
+    declared = {
+        decorated_prefixes(d.name)[0]: d.address for d in read_declared(root, source)[0]
+    }
+    resolver = Resolver(coff, addresses, entries, xbe, declared)
     for m, symbol in symbols.items():
         unit_path = root / UNIT_DIR / f"{m.address:08X}.obj"
         if not unit_path.exists():
