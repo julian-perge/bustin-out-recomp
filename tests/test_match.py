@@ -7,6 +7,7 @@ from bodecomp.coff import Reloc, parse
 from bodecomp.match import (
     FLAGS,
     Resolver,
+    Unresolved,
     candidates,
     compare,
     decorated_prefixes,
@@ -728,3 +729,288 @@ def test_a_bad_declared_line_in_a_shared_header_is_reported_once(tmp_path):
         "not Foo::Bar"
     )
     assert declared_run(root) == ([], [problem])
+
+
+def test_scan_reads_a_generated_line_as_a_claim():
+    text = "// generated: 0x00011020\n// 0x00011000\nvoid f()\n{\n}\n"
+    found, problems = scan_source(Path("src/a.cpp"), text)
+    assert [(m.address, m.name, m.generated) for m in found] == [
+        (0x11020, "", True),
+        (0x11000, "f", False),
+    ]
+    assert problems == []
+
+
+def test_generated_line_without_one_eight_digit_address_is_a_problem():
+    text = "// generated: 0x11020\n// generated: 0x00011020 0x00011030\n// generated:\n"
+    found, problems = scan_source(Path("src/a.cpp"), text)
+    assert found == []
+    assert problems == [
+        f"src/a.cpp:{n}: generated needs one 8-digit 0xADDRESS" for n in (1, 2, 3)
+    ]
+
+
+# A class with a virtual base. The original destructor at 0x00011000 stores
+# the vtable at 0x00020000. Slot 0 of the vtable is the deleting destructor at
+# 0x00011030, which calls the destructor. Slot 1 is the thunk at 0x00011020,
+# which jumps to Foo::Run at 0x00011010.
+STORE = b"\xc7\x01\0\0\0\0\xc3"
+RUN = b"\xc2\x04\x00"
+THUNK = b"\x2b\x49\xfc\xe9\0\0\0\0"
+DELETING = b"\xe8\0\0\0\0\xc2\x04\x00"
+DESTRUCTOR_SOURCE = "// 0x00011000\nFoo::~Foo()\n{\n}\n"
+RUN_SOURCE = "// 0x00011010\nvoid Foo::Run(int mode)\n{\n}\n"
+SAME = ("matched", "100.0", "")
+UNREACHED = ("error", "", "the check reached no compiler-generated function here")
+# Symbol numbers in the built object.
+RUN_SYMBOL, VECTOR_DELETING_SYMBOL = 1, 5
+
+
+def thunk_project(
+    tmp_path: Path,
+    claims: str,
+    source: str = DESTRUCTOR_SOURCE + RUN_SOURCE,
+    thunk: bytes = THUNK,
+    run_code: bytes = RUN,
+    deleting: bytes = DELETING,
+    original_jump: int = 0x11010,
+    built_jump: int = RUN_SYMBOL,
+) -> tuple[Path, bytes]:
+    (tmp_path / "src/game").mkdir(parents=True)
+    (tmp_path / "src/game/a.cpp").write_text(claims + source)
+    text = bytearray(b"\xcc" * 0x40)
+    text[0x00:0x07] = STORE[:2] + (0x20000).to_bytes(4, "little") + STORE[6:]
+    text[0x10:0x13] = RUN
+    text[0x20:0x28] = THUNK[:4] + rel32(original_jump, 0x11024)
+    text[0x30:0x38] = DELETING[:1] + rel32(0x11000, 0x11031) + DELETING[5:]
+    vtable = (0x11030).to_bytes(4, "little") + (0x11020).to_bytes(4, "little")
+    (tmp_path / "orig").mkdir()
+    (tmp_path / "orig/default.xbe").write_bytes(
+        build_xbe(
+            [(".text", 0x11000, bytes(text)), (".rdata", 0x20000, vtable)],
+            [],
+            title_id=1,
+            entry=0x11000,
+        )
+    )
+    units = tmp_path / "build/target/units"
+    units.mkdir(parents=True)
+    (units / "00011000.obj").write_bytes(
+        build_coff(
+            sections=[(".text", STORE, [(2, 0, DIR32)])],
+            symbols=[("DAT_00020000", 0, 0, 0, EXTERNAL)],
+        )
+    )
+    (units / "00011010.obj").write_bytes(
+        build_coff(sections=[(".text", RUN, [])], symbols=[])
+    )
+    (tmp_path / "build/target/symbols.tsv").write_text("")
+    (tmp_path / "config").mkdir()
+    write_symbols(tmp_path / "config/symbols.txt", [])
+    obj = build_coff(
+        sections=[
+            (".text", STORE, [(2, 2, DIR32)]),
+            (".text", run_code, []),
+            (".rdata", bytes(8), [(0, 5, DIR32), (4, 3, DIR32)], RDATA),
+            (".text", thunk, [(4, built_jump, REL32)]),
+            (".text", deleting, [(1, 0, REL32)]),
+        ],
+        symbols=[
+            ("??1Foo@@UAE@XZ", 0, 1, 0x20, EXTERNAL),
+            ("?Run@Foo@@UAEXH@Z", 0, 2, 0x20, EXTERNAL),
+            ("??_7Foo@@6B@", 0, 3, 0, EXTERNAL),
+            ("?Run@Foo@@$4PPPPPPPM@A@AEXH@Z", 0, 4, 0x20, EXTERNAL),
+            ("??_GFoo@@UAEPAXI@Z", 0, 5, 0x20, EXTERNAL),
+            (
+                "??_EFoo@@UAEPAXI@Z",
+                0,
+                0,
+                0x20,
+                WEAK_EXTERNAL,
+                (4).to_bytes(4, "little") + bytes(14),
+            ),
+        ],
+    )
+    return tmp_path, obj
+
+
+def thunk_rows(tmp_path: Path, claims: str, **kw):
+    root, obj = thunk_project(tmp_path, claims, **kw)
+    results, problems = run(root, compile=fake_compile(obj))
+    return {r.address: (r.status, r.score, r.detail) for r in results}, problems
+
+
+def test_claimed_thunk_with_a_matched_target_is_matched(tmp_path):
+    rows, problems = thunk_rows(tmp_path, "// generated: 0x00011020\n")
+    assert problems == []
+    assert rows == {0x11000: SAME, 0x11010: SAME, 0x11020: SAME}
+
+
+def test_claimed_thunk_with_one_different_byte_is_nonmatching(tmp_path):
+    other_offset = THUNK[:2] + b"\xf8" + THUNK[3:]
+    rows, _ = thunk_rows(tmp_path, "// generated: 0x00011020\n", thunk=other_offset)
+    detail = ".text item at +0x0 differs from 0x00011020"
+    assert rows[0x11020] == ("nonmatching", "", detail)
+
+
+def test_claimed_thunk_whose_target_is_nonmatching_is_not_matched(tmp_path):
+    rows, _ = thunk_rows(
+        tmp_path, "// generated: 0x00011020\n", run_code=b"\xc2\x08\x00"
+    )
+    assert rows[0x11010][0] == "nonmatching"
+    detail = "its jump target 0x00011010 is nonmatching"
+    assert rows[0x11020] == ("nonmatching", "100.0", detail)
+
+
+def test_claimed_thunk_whose_target_is_not_claimed_is_not_matched(tmp_path):
+    rows, _ = thunk_rows(
+        tmp_path, "// generated: 0x00011020\n", source=DESTRUCTOR_SOURCE
+    )
+    detail = "its jump target 0x00011010 is not claimed"
+    assert rows == {0x11000: SAME, 0x11020: ("nonmatching", "100.0", detail)}
+
+
+def test_claimed_thunk_that_jumps_to_a_claimed_deleting_destructor_is_matched(
+    tmp_path,
+):
+    rows, _ = thunk_rows(
+        tmp_path,
+        "// generated: 0x00011020\n// generated: 0x00011030\n",
+        original_jump=0x11030,
+        built_jump=VECTOR_DELETING_SYMBOL,
+    )
+    assert rows == {0x11000: SAME, 0x11010: SAME, 0x11020: SAME, 0x11030: SAME}
+
+
+def test_claim_that_the_check_never_reached_is_an_error(tmp_path):
+    rows, problems = thunk_rows(tmp_path, "// generated: 0x00011038\n")
+    assert problems == []
+    assert rows == {0x11000: SAME, 0x11010: SAME, 0x11038: UNREACHED}
+
+
+def test_source_without_claims_gives_only_the_rows_of_its_address_comments(tmp_path):
+    rows, problems = thunk_rows(tmp_path, "")
+    assert problems == []
+    assert rows == {0x11000: SAME, 0x11010: SAME}
+
+
+def test_claimed_deleting_destructor_gets_its_own_row(tmp_path):
+    rows, _ = thunk_rows(tmp_path, "// generated: 0x00011030\n")
+    assert rows == {0x11000: SAME, 0x11010: SAME, 0x11030: SAME}
+
+
+def test_claimed_deleting_destructor_with_one_different_byte_is_nonmatching(tmp_path):
+    pops_eight = DELETING[:6] + b"\x08" + DELETING[7:]
+    rows, _ = thunk_rows(tmp_path, "// generated: 0x00011030\n", deleting=pops_eight)
+    detail = ".text item at +0x0 differs from 0x00011030"
+    assert rows[0x11030] == ("nonmatching", "", detail)
+
+
+BOTH_CLAIMS = "// generated: 0x00011020\n// generated: 0x00011030\n"
+
+
+def test_claim_in_a_slot_after_a_differing_slot_is_nonmatching_not_an_error(tmp_path):
+    pops_eight = DELETING[:6] + b"\x08" + DELETING[7:]
+    rows, _ = thunk_rows(tmp_path, BOTH_CLAIMS, deleting=pops_eight)
+    detail = ".text item at +0x0 differs from 0x00011030"
+    assert rows[0x11020] == ("nonmatching", "", detail)
+
+
+def test_claim_is_nonmatching_when_a_later_item_of_its_check_differs(tmp_path):
+    other_offset = THUNK[:2] + b"\xf8" + THUNK[3:]
+    rows, _ = thunk_rows(tmp_path, BOTH_CLAIMS, thunk=other_offset)
+    detail = ".text item at +0x0 differs from 0x00011020"
+    assert rows[0x11030] == ("nonmatching", "", detail)
+
+
+def test_address_comment_and_generated_line_on_one_address_are_claimed_twice(
+    tmp_path,
+):
+    rows, problems = thunk_rows(tmp_path, "// generated: 0x00011010\n")
+    assert rows == {}
+    assert problems == ["0x00011010 is claimed by src/game/a.cpp and src/game/a.cpp"]
+
+
+def test_generated_claim_gets_a_row_in_functions_csv(tmp_path, monkeypatch):
+    root, obj = thunk_project(tmp_path, "// generated: 0x00011020\n")
+    monkeypatch.chdir(root)
+    monkeypatch.setattr("bodecomp.match.compile_cpp", fake_compile(obj))
+    assert main([]) == 0
+    assert read_functions(root / "config/functions.csv") == {
+        0x11000: ("matched", "src/game/a.cpp"),
+        0x11010: ("matched", "src/game/a.cpp"),
+        0x11020: ("matched", "src/game/a.cpp"),
+    }
+
+
+# A compiler-generated function that two checks reach. The original has it at
+# 0x00011010. The table at 0x00020000 points at it and then at 0x00011030, and
+# the built table's second pointer names 0x00011020, so a check of the table
+# fails after it compared the function. A check of the function alone passes.
+def reached_twice(order: str) -> str:
+    obj = build_coff(
+        sections=[
+            (".text", b"\xc3", []),
+            (".rdata", bytes(8), [(0, 0, DIR32), (4, 2, DIR32)], RDATA),
+        ],
+        symbols=[
+            ("?generated@@YAXXZ", 0, 1, 0x20, EXTERNAL),
+            ("?table@@3PAXA", 0, 2, 0, EXTERNAL),
+            ("_FUN_00011020", 0, 0, 0x20, EXTERNAL),
+        ],
+    )
+    text = b"\xcc" * 0x10 + b"\xc3" + b"\xcc" * 0xF
+    rdata = (0x11010).to_bytes(4, "little") + (0x11030).to_bytes(4, "little")
+    r = resolver(obj, rdata=rdata, text=text)
+    for check in order.split():
+        if check == "function":
+            assert r.site("?generated@@YAXXZ", 0, 0x11010) == 0x11010
+        else:
+            with pytest.raises(Unresolved, match="points elsewhere"):
+                r.site("?table@@3PAXA", 0, 0x20000)
+    return r.checked[0x11010]
+
+
+def test_generated_code_is_not_equal_when_the_only_check_that_reached_it_failed():
+    assert reached_twice("table") == ".rdata+0x4 points elsewhere"
+
+
+def test_generated_code_is_equal_when_a_later_check_that_reached_it_passed():
+    assert reached_twice("table function") == ""
+
+
+def test_generated_code_stays_equal_when_a_later_check_that_reached_it_failed():
+    assert reached_twice("function table") == ""
+
+
+def test_claim_on_the_address_of_checked_data_is_an_error(tmp_path):
+    rows, _ = thunk_rows(tmp_path, "// generated: 0x00020000\n")
+    assert rows[0x20000] == UNREACHED
+
+
+# Compiler-generated code at 0x00011010 with one relocation to 0x00011000.
+def jumps_of(code: bytes, at: int) -> dict[int, int]:
+    obj = build_coff(
+        sections=[(".text", code, [(at, 1, REL32)])],
+        symbols=[
+            ("?generated@@YAXXZ", 0, 1, 0x20, EXTERNAL),
+            ("_FUN_00011000", 0, 0, 0x20, EXTERNAL),
+        ],
+    )
+    original = code[:at] + rel32(0x11000, 0x11010 + at) + code[at + 4 :]
+    text = b"\xcc" * 0x10 + original + b"\xcc" * (0x10 - len(original))
+    r = resolver(obj, text=text)
+    assert r.site("?generated@@YAXXZ", 0, 0x11010) == 0x11010
+    return r.jumps
+
+
+def test_code_that_ends_in_a_jump_gives_its_jump_target():
+    assert jumps_of(THUNK, 4) == {0x11010: 0x11000}
+
+
+def test_code_that_ends_in_a_call_gives_no_jump_target():
+    assert jumps_of(b"\x2b\x49\xfc\xe8\0\0\0\0", 4) == {}
+
+
+def test_code_that_jumps_before_its_end_gives_no_jump_target():
+    assert jumps_of(b"\xe9\0\0\0\0\xc3", 1) == {}

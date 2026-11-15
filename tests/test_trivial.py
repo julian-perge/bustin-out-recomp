@@ -274,6 +274,15 @@ def test_generate_skips_functions_claimed_by_other_sources(tmp_path):
     assert not (root / "src/game/trivial/0001.cpp").exists()
 
 
+def test_generate_skips_a_function_that_a_generated_line_claims(tmp_path):
+    root = repo(tmp_path)
+    (root / "src/game/a.cpp").write_text("// generated: 0x00011000\n")
+    kept, tried, problems = generate(root, compile=fake_compile(BUILT))
+    assert problems == []
+    assert tried == {"zero": 1}
+    assert not (root / "src/game/trivial/0001.cpp").exists()
+
+
 def test_generate_drops_a_trivial_function_claimed_by_another_source(tmp_path):
     root = repo(tmp_path)
     generate(root, compile=fake_compile(BUILT))
