@@ -169,7 +169,7 @@ address,status,source,score,detail
 0x00035E60,matched,src/game/trivial/0003.cpp,100.0,
 0x00036570,matched,src/game/auto/0003B940.cpp,100.0,
 0x000365B0,matched,src/game/auto/0003B940.cpp,100.0,
-0x00036670,parked,src/game/auto/0003B940.cpp,94.8,scheduling
+0x00036670,matched,src/game/auto/0003B940.cpp,100.0,
 0x00037BE0,matched,src/game/trivial/0003.cpp,100.0,
 0x00037C40,matched,src/game/trivial/0003.cpp,100.0,
 0x00038310,matched,src/game/trivial/0003.cpp,100.0,
@@ -184,10 +184,11 @@ address,status,source,score,detail
 0x0003B230,matched,src/game/auto/0003B940.cpp,100.0,
 0x0003B2C0,matched,src/game/auto/0003B940.cpp,100.0,
 0x0003B2D0,matched,src/game/auto/0003B940.cpp,100.0,
-0x0003B2E0,nonmatching,src/game/auto/0003B940.cpp,100.0,its jump target 0x00036670 is parked
+0x0003B2E0,matched,src/game/auto/0003B940.cpp,100.0,
 0x0003B2F0,matched,src/game/auto/0003B940.cpp,100.0,
 0x0003B300,matched,src/game/auto/0003B940.cpp,100.0,
 0x0003B360,matched,src/game/auto/0003B940.cpp,100.0,
+0x0003B8D0,matched,src/game/auto/0003B940.cpp,100.0,
 0x0003B940,matched,src/game/auto/0003B940.cpp,100.0,
 0x0003C620,matched,src/game/auto/0003B940.cpp,100.0,
 0x0003C6A0,matched,src/game/trivial/0003.cpp,100.0,

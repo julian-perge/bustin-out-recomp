@@ -382,7 +382,6 @@ public:
     virtual void SetMode(int newMode);
     virtual void vfn2(int a1, int a2);
 
-    void FUN_00124680(int a1, int a2);
     void FUN_00038CA0(int a);
     void FUN_0003A4A0();
     void FUN_0003A8F0();
@@ -395,7 +394,7 @@ public:
     int FUN_00040BF0();
     int FUN_00040810();
     int FUN_00042A60();
-    static void FUN_0003B8D0() throw();
+    static void FUN_0003B8D0();
 
     bool IsBuildMode() const { return mode == 8 || mode == 10 || mode == 11 || mode == 9; }
 
@@ -444,6 +443,42 @@ public:
     int unk1DC;
     int unk1E0;
 };
+
+struct Defaults_0003B940
+{
+    int words[10];
+};
+
+typedef void (*Callback_0003B940)();
+
+void FUN_0003A0E0();
+void FUN_00038320();
+void FUN_00038500();
+void FUN_00038640();
+void FUN_00038710();
+void FUN_0003A180();
+void FUN_000387E0();
+void FUN_0003B8B0();
+void FUN_00038A70();
+
+extern const Defaults_0003B940 DAT_00308C9C;
+extern Defaults_0003B940 DAT_003DD554;
+extern Callback_0003B940 DAT_003DD52C[9];
+
+// 0x0003B8D0
+void Unk80026864::FUN_0003B8D0()
+{
+    DAT_003DD554 = DAT_00308C9C;
+    DAT_003DD52C[0] = FUN_0003A0E0;
+    DAT_003DD52C[1] = FUN_00038320;
+    DAT_003DD52C[2] = FUN_00038500;
+    DAT_003DD52C[3] = FUN_00038640;
+    DAT_003DD52C[4] = FUN_00038710;
+    DAT_003DD52C[5] = FUN_0003A180;
+    DAT_003DD52C[6] = FUN_000387E0;
+    DAT_003DD52C[7] = FUN_0003B8B0;
+    DAT_003DD52C[8] = FUN_00038A70;
+}
 
 // 0x0003B940
 Unk80026864::Unk80026864(int player)
@@ -530,7 +565,6 @@ void Unk80026864::vfn2(int a1, int a2)
 }
 
 // 0x00036670
-// parked: scheduling
 void Unk80026864::SetMode(int newMode)
 {
     mode = newMode;
@@ -544,8 +578,7 @@ void Unk80026864::SetMode(int newMode)
         FUN_0003EEB0();
         unkE4->FUN_000574F0();
         unkA4 = 0;
-        FUN_00017CD0(2, 1);
-        Unk80026864::FUN_000365B0(2, true);
+        SetFlags(2, true);
         break;
     case 8:
         FUN_00040D60();
