@@ -512,6 +512,29 @@ def test_declared_line_in_a_header_of_a_header_is_read(tmp_path):
     assert declared_run(root) == ([("matched", "")], [])
 
 
+def test_header_include_is_read_from_the_folder_of_the_header(tmp_path):
+    root = project(tmp_path, '#include "base/Base.h"\n' + CLAIM)
+    (root / "src/game/base").mkdir()
+    (root / "src/game/base/Base.h").write_text('#include "Foo.h"\n')
+    (root / "src/game/base/Foo.h").write_text("// declared: 0x00011010 Foo::Foo\n")
+    assert declared_run(root) == ([("matched", "")], [])
+
+
+def test_headers_that_include_each_other_are_each_read_once(tmp_path):
+    root = project(tmp_path, '#include "Foo.h"\n' + CLAIM)
+    (root / "src/game/Foo.h").write_text('#include "Bar.h"\n')
+    (root / "src/game/Bar.h").write_text(
+        '#include "Foo.h"\n// declared: 0x00011010 Foo::Foo\n'
+    )
+    assert declared_run(root) == ([("matched", "")], [])
+
+
+def test_include_of_a_file_that_is_not_beside_its_includer_is_skipped(tmp_path):
+    lines = '#include "elsewhere.h"\n// declared: 0x00011010 Foo::Foo\n'
+    root = project(tmp_path, lines + CLAIM)
+    assert declared_run(root) == ([("matched", "")], [])
+
+
 def test_declared_line_in_a_header_that_is_not_included_is_not_read(tmp_path):
     root = project(tmp_path, CLAIM)
     (root / "src/game/Foo.h").write_text("// declared: 0x00011010 Foo::Foo\n")
