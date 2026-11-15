@@ -18,7 +18,7 @@ struct EVec3
     float y;
     float z;
     EVec3() {}
-    EVec3(float v) { x = v; y = v; z = v; }
+    explicit EVec3(float value) { x = y = z = value; }
 };
 
 // The vtable of UnkTargetBase is at 0x002EC588 and has 17 slots.
