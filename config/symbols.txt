@@ -865,6 +865,7 @@ address	kind	size	name	tier	evidence
 0x0003BD50	function	382	FUN_0003bd50	auto	
 0x0003BED0	function	1589	default	sdk	xbe-loader
 0x0003C510	function	253	FUN_0003c510	auto	
+0x0003C620	function	120	FUN_0003c620	auto	
 0x0003C6A0	function	7	FUN_0003c6a0	auto	
 0x0003C6B0	function	16	FUN_0003c6b0	auto	
 0x0003C6E0	function	7	FUN_0003c6e0	auto	
@@ -17734,6 +17735,7 @@ address	kind	size	name	tier	evidence
 0x0021F5A0	function	41	_isspace	sdk	lib:libcmt.lib:obj\i386\_ctype.obj
 0x0021F5F2	function	46	_isalnum	sdk	lib:libcmt.lib:obj\i386\_ctype.obj
 0x0021F64E	function	46	_isgraph	sdk	lib:libcmt.lib:obj\i386\_ctype.obj
+0x0021F734	function	20	__purecall	sdk	lib:libcmt.lib:obj\i386\purevirt.obj
 0x0021F758	function	5	thunk_FUN_00123040_0021F758	sdk	lib-ambiguous(127):??1?$moneypunct@D$00@std@@UAE@XZ,??1?$moneypunct@D$0A@@std@@UAE@XZ,??1?$moneypunct@G$00@std@@UAE@XZ,??1?$moneypunct@G$0A@@std@@UAE@XZ,??1?$moneypunct@_W$00@std@@UAE@XZ
 0x0021F75D	function	50	_wcscmp	sdk	lib:libcmt.lib:obj\i386\wcscmp.obj
 0x0021F78F	function	53	_wcsncmp	sdk	lib:libcmt.lib:obj\i386\wcsncmp.obj
