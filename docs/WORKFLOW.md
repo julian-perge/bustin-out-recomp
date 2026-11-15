@@ -73,12 +73,13 @@ A source function is paired with its target by an address comment on the line be
 
 The definition may be `operator new` or `operator delete`, free or in a class; other operators are not read. A vtordisp thunk that VC71 names after the function is not taken as its definition.
 
-A constructor or destructor that is declared and not matched cannot take a `FUN_` name. A `declared` line gives it its address:
+A constructor or destructor that is declared and not matched cannot take a `FUN_` name. An override that is declared and not matched cannot take its own `FUN_` name either: it keeps the name of the base's slot, and that name gives the base function's address. A `declared` line gives such a function its address:
 
     // declared: 0x001249C0 UnkTargetBase::UnkTargetBase
     // declared: 0x001248B0 UnkTargetBase::~UnkTargetBase
+    // declared: 0x000A8720 S_000A80B0::FUN_00124940
 
-The line sits in a source, or in a header that the source includes with `#include "..."`. A header's own quoted includes are read too, each from the folder of the file that includes it. The line takes only a constructor or a destructor. It is not a claim: the address gets no row in `config/functions.csv`, and two files can hold the same line. A line for any other function, a line without an 8-digit address, and one name with two addresses are problems that stop the run. All constructors of a class share one name, so a class with two constructors that are not matched cannot declare both.
+The line sits in a source, or in a header that the source includes with `#include "..."`. A header's own quoted includes are read too, each from the folder of the file that includes it. The line is for a constructor, a destructor or an override. The tool checks only that the name is a member function, so other member functions keep their `FUN_` names by rule and not by a check. It is not a claim: the address gets no row in `config/functions.csv`, and two files can hold the same line. A line for a free function or an operator, a line without an 8-digit address, and one name with two addresses are problems that stop the run. All constructors of a class share one name, so a class with two constructors that are not matched cannot declare both. For the same reason, one line gives its address to every overload of a member function.
 
 A thunk or a deleting destructor has no definition in the source, so no address comment can sit before it. A `generated` line claims one:
 

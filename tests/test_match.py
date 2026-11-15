@@ -708,21 +708,52 @@ def test_declared_line_in_a_header_that_is_not_included_is_not_read(tmp_path):
     assert declared_run(root) == ([("nonmatching", detail)], [])
 
 
-def test_declared_line_takes_only_a_constructor_or_destructor(tmp_path):
-    lines = (
-        "// declared: 0x00011010 Foo::Bar\n"
-        "// declared: 0x00011010 Bar\n"
-        "// declared: 0x00011010 Foo::operator new\n"
-    )
+def test_call_to_a_declared_override_resolves_to_the_stated_address(tmp_path):
+    # An override keeps the name of the base's slot, so without the line its
+    # FUN_ name would give the base's address 0x00012000.
+    root = project(tmp_path, "// declared: 0x00011010 Foo::FUN_00012000\n" + CLAIM)
+    callee = "?FUN_00012000@Foo@@UAEXXZ"
+    assert declared_run(root, callee) == ([("matched", "")], [])
+
+
+def test_override_without_a_declared_line_resolves_to_its_base_slot(tmp_path):
+    root = project(tmp_path, CLAIM)
+    detail = "relocation at +0x1: built 0x00012000, target 0x00011010"
+    callee = "?FUN_00012000@Foo@@UAEXXZ"
+    assert declared_run(root, callee) == ([("nonmatching", detail)], [])
+
+
+def test_declared_override_gives_no_address_to_the_base_slot(tmp_path):
+    root = project(tmp_path, "// declared: 0x00011010 Foo::FUN_00012000\n" + CLAIM)
+    detail = "relocation at +0x1: built 0x00012000, target 0x00011010"
+    callee = "?FUN_00012000@Base@@UAEXXZ"
+    assert declared_run(root, callee) == ([("nonmatching", detail)], [])
+
+
+def test_declared_line_takes_no_free_function_or_operator(tmp_path):
+    lines = "// declared: 0x00011010 Bar\n// declared: 0x00011010 Foo::operator new\n"
     root = project(tmp_path, lines + CLAIM)
-    start = "src/game/a.cpp:{}: declared takes only a constructor or destructor, not {}"
+    start = (
+        "src/game/a.cpp:{}: declared takes only a constructor, a destructor "
+        "or a member function, not {}"
+    )
     assert declared_run(root) == (
         [],
-        [
-            start.format(1, "Foo::Bar"),
-            start.format(2, "Bar"),
-            start.format(3, "Foo::operator new"),
-        ],
+        [start.format(1, "Bar"), start.format(2, "Foo::operator new")],
+    )
+
+
+def test_declared_member_name_is_made_of_identifiers(tmp_path):
+    names = ["Foo::operator=", "Foo::~Bar", "::Bar", "Foo::Bar extra"]
+    lines = "".join(f"// declared: 0x00011010 {n}\n" for n in names)
+    root = project(tmp_path, lines + CLAIM)
+    start = (
+        "src/game/a.cpp:{}: declared takes only a constructor, a destructor "
+        "or a member function, not {}"
+    )
+    assert declared_run(root) == (
+        [],
+        [start.format(i, n) for i, n in enumerate(names, 1)],
     )
 
 
@@ -751,10 +782,10 @@ def test_one_declared_name_with_two_addresses_is_a_problem(tmp_path):
 def test_a_bad_declared_line_in_a_shared_header_is_reported_once(tmp_path):
     root = project(tmp_path, '#include "Foo.h"\n' + CLAIM)
     (root / "src/game/b.cpp").write_text('#include "Foo.h"\n')
-    (root / "src/game/Foo.h").write_text("// declared: 0x00011010 Foo::Bar\n")
+    (root / "src/game/Foo.h").write_text("// declared: 0x00011010 Bar\n")
     problem = (
-        "src/game/Foo.h:1: declared takes only a constructor or destructor, "
-        "not Foo::Bar"
+        "src/game/Foo.h:1: declared takes only a constructor, a destructor "
+        "or a member function, not Bar"
     )
     assert declared_run(root) == ([], [problem])
 

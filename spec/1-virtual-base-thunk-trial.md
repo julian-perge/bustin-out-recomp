@@ -52,11 +52,12 @@ The virtual base's own vtable is 0x002E38F4. 18 functions reference it, among th
 - Existing sources without such claims keep their results.
 - If the check cannot follow a constructor's exception-handling handler and tables, the same rule is added for them: compare bytes and relocations at the expected address. A probe on class 1's constructor comes before any class work.
 - A constructor or destructor that is declared and not matched cannot take a `FUN_` name, so a call to it does not resolve. A line `// declared: 0xADDRESS Class::Class` (or `Class::~Class`) in a source, or in a header it includes, gives it its address. The line takes only constructors and destructors, and it is not a claim (plan, 2026-11-14).
+- An override that is declared and not matched keeps the name of the base's slot, so it resolves to the base function's address. A `declared` line also takes such an override, for example `// declared: 0x000A8720 S_000A80B0::FUN_00124940`. The tool checks only that the name is a member function. This changes the plan's rule above: class 3 found the problem, and the maintainer approved the change on 2026-11-15 (issue #8, F-0098).
 
 ### R2. One shared header for the two bases
 
 - `src/game/auto/UnkTargetBase.h` declares `UnkTargetBase` and `Unk802A2AC0` once. The three class sources and the callers batch include it. `bodecomp.cl` has no include path, so the header sits beside the sources.
-- The declarations give the real layout and every virtual function in slot order. Functions that are not matched are declared under their `config/symbols.txt` names (`FUN_XXXXXXXX`), so the match resolves them. Constructors and destructors take a `declared` line (R1).
+- The declarations give the real layout and every virtual function in slot order. Functions that are not matched are declared under their `config/symbols.txt` names (`FUN_XXXXXXXX`), so the match resolves them. Constructors, destructors and overrides that are not matched take a `declared` line (R1).
 - Each derived class is declared in its own source file, not in a header.
 
 ### R3. Three classes, each in one source file
@@ -217,4 +218,4 @@ None. The maintainer approved the spec on 2026-11-14, which settles the three qu
 2. Exception-handling support in `bodecomp.match` is part of R1 when the probe shows it is missing.
 3. For the outcome "class parked", the maintainer decides after the results.
 
-The plan of 2026-11-14 added the `declared` line and the claim syntax in R1, the exclusion in R4, the bytes columns in R5 and prerequisite 4. The maintainer approved each in the plan session. The tasks are sub-issues #2 to #10 of the source issue.
+The plan of 2026-11-14 added the `declared` line and the claim syntax in R1, the exclusion in R4, the bytes columns in R5 and prerequisite 4. The maintainer approved each in the plan session. The tasks are sub-issues #2 to #10 of the source issue. On 2026-11-15, during issue #8, the maintainer approved one change to the plan: the `declared` line of R1 also takes an override.

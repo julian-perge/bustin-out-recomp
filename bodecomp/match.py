@@ -45,6 +45,7 @@ GENERATED_LINE = re.compile(r"^//\s*generated:\s*(.*?)\s*$")
 GENERATED_BODY = re.compile(r"0x([0-9A-Fa-f]{8})")
 DECLARED_LINE = re.compile(r"^//\s*declared:\s*(.*?)\s*$")
 DECLARED_BODY = re.compile(r"0x([0-9A-Fa-f]{8})\s+(.+)")
+IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
 INCLUDE_LINE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
 AUTO_ADDRESS = re.compile(r"^(?:FUN|DAT|LAB)_([0-9A-Fa-f]{8})$")
 OPERATOR = re.compile(r"((?:\w+::)*)operator\s+(new|delete)\s*$")
@@ -161,10 +162,14 @@ def read_declared(root: Path, source: Path) -> tuple[list[Declared], list[str]]:
                 problems.append(
                     f"{path}:{i}: declared needs an 8-digit 0xADDRESS and a name"
                 )
-            elif decorated_prefixes(body.group(2))[0][:3] not in ("??0", "??1"):
+                continue
+            parts = body.group(2).split("::")
+            member = len(parts) > 1 and all(IDENTIFIER.fullmatch(p) for p in parts)
+            prefix = decorated_prefixes(body.group(2))[0]
+            if not (member or prefix.startswith(("??0", "??1"))):
                 problems.append(
-                    f"{path}:{i}: declared takes only a constructor or destructor, "
-                    f"not {body.group(2)}"
+                    f"{path}:{i}: declared takes only a constructor, a destructor "
+                    f"or a member function, not {body.group(2)}"
                 )
             else:
                 address = int(body.group(1), 16)
