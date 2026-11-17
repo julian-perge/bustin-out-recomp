@@ -3,6 +3,7 @@
 // declared: 0x00127860 TrackedBase_000929C0::~TrackedBase_000929C0
 // declared: 0x000141B0 Unk_000929C0::SetMode
 // declared: 0x00092990 Unk_000929C0::vfn2
+// generated: 0x00018810
 
 void FUN_00123040(void* p);
 

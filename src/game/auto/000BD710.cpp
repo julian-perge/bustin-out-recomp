@@ -40,7 +40,7 @@ public:
     Panel_000BD710(int a1, int a2, float a3, float a4, float a5, int a6, int a7, bool a8);
     virtual ~Panel_000BD710();
     virtual void FUN_00124700(const EVec3* position);
-    virtual void FUN_00017CD0(int a1, int a2);
+    virtual void FUN_00017CD0(int a1, bool a2);
     virtual void FUN_00145550();
     virtual void FUN_00145830(int a1, int a2, int a3, int a4);
     virtual void FUN_00146280();
