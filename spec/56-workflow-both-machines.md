@@ -70,12 +70,12 @@ Users: the maintainer and the maintainer's Claude sessions. A contributor withou
 
 ### R3. Ghidra project freshness on each machine
 
-1. `bodecomp.sync check` writes the git-ignored file `ghidra/.sync-stamp` when it ends with 0 differences both ways. The file holds two hashes: the SHA-256 of `config/symbols.txt`, and the SHA-256 of its `function` lines. No other command writes it.
+1. `bodecomp.sync check` writes the git-ignored file `ghidra/.sync-stamp` when it ends with 0 differences both ways. The file holds two hashes: the SHA-256 of `config/symbols.txt`, and the SHA-256 of the address and kind columns of its `function` lines (the function starts, ADR-0022). No other command writes it.
 2. `tools/session-start.sh` compares the stamp with the current `config/symbols.txt` and prints one line:
    - Level: `ghidra project: level with config/symbols.txt`.
    - No stamp: `ghidra project: no sync stamp, run tools/rebuild-ghidra.sh, then sync apply and sync check`.
-   - The `function` lines differ: the rebuild command above (`sync apply` does not create functions).
-   - Only other lines differ: `run sync apply and sync check`.
+   - The function starts differ: `ghidra project: function starts changed, run tools/rebuild-ghidra.sh, then sync apply and sync check` (`sync apply` does not create functions).
+   - Only other columns or lines differ, such as a function rename or size: `ghidra project: names changed, run sync apply and sync check`.
 3. The hook does not need the server. It reads files only.
 4. Each of the four scripts that run Ghidra finds it on both machines without a manual override: Mac with Homebrew, WSL with Linuxbrew. `GHIDRA_HOME` stays as an override. One shared file sets the default. `.mcp.json` is untracked and git-ignored (maintainer decision, 2026-11-17), so each machine keeps its own copy with its own path to `uv`. `docs/WORKFLOW.md` says that the file is per machine and gives its content (the bridge command and `--no-lazy`, F-0023).
 5. A Ghidra-writer task commits `config/symbols.txt` after `sync export` (as now). A change in Ghidra that no tracked text file records is scratch (decision above) and the task does not count it as done.
