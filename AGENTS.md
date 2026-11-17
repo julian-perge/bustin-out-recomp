@@ -10,6 +10,7 @@ A byte-matching decompilation of the Xbox release: C++ that VC71 compiles back t
 
 ## Where things live
 
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to find, claim and send work. [CODING_STANDARDS.md](CODING_STANDARDS.md): the rules `S1` to `S4` that every change follows.
 - `docs/STATUS.md`: milestones and the one Active block (branch, running processes, owners, blockers, backlog, next action).
 - `docs/FINDINGS.md`: facts, one entry each with a status. `docs/adr/`: decisions about method.
 - `docs/WORKFLOW.md`: the ghidra-mcp server, rebuild, delink, query recipes, end-of-batch steps, the GameCube watch.

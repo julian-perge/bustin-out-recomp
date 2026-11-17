@@ -35,6 +35,6 @@ Refresh this section with `uv run python -m bodecomp.readme`.
 
 ## Working on it
 
-See [AGENTS.md](AGENTS.md) for where things live and the working rules, and
+See [CONTRIBUTING.md](CONTRIBUTING.md) to contribute, [AGENTS.md](AGENTS.md) for where things live and the working rules, and
 [docs/WORKFLOW.md](docs/WORKFLOW.md) for the tool procedures. This repo does not ship the game;
 you need your own copy of `default.xbe`.

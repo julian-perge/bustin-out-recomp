@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 LINK_CHECKED_DOCS = [
     "CODING_STANDARDS.md",
     "docs/METHODOLOGY.md",
+    "CONTRIBUTING.md",
 ]
 
 MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")
