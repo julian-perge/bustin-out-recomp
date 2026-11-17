@@ -264,9 +264,11 @@ def test_matcher_looks_for_the_same_statements_before_a_scheduling_park():
     line = matcher_bullet("F-0094")
     assert "`scheduling`" in line
     assert "inline helper of a base class" in line
+    assert "look in Ghidra" in line
 
 
 def test_matcher_defines_a_callee_in_place_of_throw():
     line = matcher_bullet("F-0095")
     assert "`throw()`" in line
     assert "define the callee in the same source" in line
+    assert "Give the callee its address comment" in line
