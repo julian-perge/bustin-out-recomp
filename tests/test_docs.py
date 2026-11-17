@@ -183,3 +183,57 @@ def test_no_tracked_file_names_the_removed_active_block_markers():
             continue
         found += [f"{name}: {m}" for m in REMOVED_MARKERS if m in text]
     assert found == []
+
+
+ACTIVE_BLOCK_EXEMPT = ("docs/adr/", "spec/")
+
+
+def test_no_doc_names_the_removed_active_block():
+    # ADRs, the milestone results and the spec name the block as it was.
+    found = []
+    for name in sorted(tracked_files()):
+        if name.startswith(ACTIVE_BLOCK_EXEMPT) or not (ROOT / name).is_file():
+            continue
+        if re.fullmatch(r"docs/m\d+-results\.md", name):
+            continue
+        if not name.endswith(".md"):
+            continue
+        if "Active block" in read(name):
+            found.append(name)
+    assert found == []
+
+
+def section(text, heading):
+    match = re.search(rf"^## {re.escape(heading)}\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    assert match, heading
+    return match.group(1)
+
+
+def test_namer_and_reviewer_read_the_ghidra_writer_label():
+    for name in ("namer", "reviewer"):
+        text = read(f".claude/agents/{name}.md")
+        assert "gh issue list --label ghidra-writer" in text, name
+        assert "Ghidra writer' docs/STATUS.md" not in text, name
+
+
+def test_matcher_reads_the_hook_output():
+    text = read(".claude/agents/matcher.md")
+    assert "Read the hook output." in text
+    assert "Read the Active block" not in text
+
+
+def test_end_of_a_batch_does_not_replace_a_status_block():
+    for name in ("AGENTS.md", "docs/WORKFLOW.md"):
+        assert "STATUS.md" not in section(read(name), "End of a batch"), name
+
+
+def test_plan_stage_puts_the_ghidra_writer_label_on_tasks():
+    text = section(read("docs/agents/workflow.md"), "Plan")
+    assert "`ghidra-writer`" in text
+    assert "The assignee is the lock." in text
+
+
+def test_workflow_says_other_ghidra_changes_are_scratch():
+    text = read("docs/WORKFLOW.md")
+    assert "is scratch" in text
+    assert "ADR-0021" in text

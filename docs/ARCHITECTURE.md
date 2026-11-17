@@ -42,7 +42,7 @@ Three agents in `.claude/agents/` do most of the work, under a lead session ([AD
 - `matcher` writes C++ for a batch of functions in its own git worktree. It reads Ghidra and does not write to it.
 - `reviewer` checks a batch against the rules `S1` to `S4` of [CODING_STANDARDS.md](../CODING_STANDARDS.md) and changes nothing.
 
-Analysis questions go through ghidra-mcp, not through a raw search of the binary. Only one writer changes the Ghidra project at a time: the lead session or one `namer`, named in the Active block of `docs/STATUS.md` ([ADR-0003](adr/0003-ghidra-mcp-first-one-writer.md)). A session writes its `docs/FINDINGS.md` entries in its own pull request, and the review checks them ([ADR-0020](adr/0020-agent-push-and-merge-commit.md)). Only the lead session edits `docs/STATUS.md`. `tools/session-start.sh` prints the Active block and the open findings at the start of each session.
+Analysis questions go through ghidra-mcp, not through a raw search of the binary. Only one writer changes the Ghidra project at a time: the lead session or one `namer`, named by the assignee of the open task with the `ghidra-writer` label ([ADR-0003](adr/0003-ghidra-mcp-first-one-writer.md), [ADR-0021](adr/0021-generated-session-state-and-ghidra-freshness.md)). A session writes its `docs/FINDINGS.md` entries in its own pull request, and the review checks them ([ADR-0020](adr/0020-agent-push-and-merge-commit.md)). Only the lead session edits the milestone table in `docs/STATUS.md`. `tools/session-start.sh` prints the generated state of the work and the open findings at the start of each session.
 
 ## Boundaries
 

@@ -46,7 +46,7 @@ uv run pytest -q && uv run ruff check . && uv run python -m bodecomp.findings ch
 
 ## Propose a finding
 
-[docs/FINDINGS.md](docs/FINDINGS.md) holds the facts about the binary and the tools, one entry each with a status. To add or change a finding, edit `docs/FINDINGS.md` in your own pull request, and list the entries in the Proposed findings section of the pull request ([ADR-0020](docs/adr/0020-agent-push-and-merge-commit.md)). The review checks them. Use the next free F-number. `findings check` fails when two entries have the same ID. When two pull requests use the same F-number, the pull request that merges second renumbers its entries before the merge. Only the maintainer's lead session edits `docs/STATUS.md`. Search `docs/FINDINGS.md` first, because a settled finding is cited and not investigated again.
+[docs/FINDINGS.md](docs/FINDINGS.md) holds the facts about the binary and the tools, one entry each with a status. To add or change a finding, edit `docs/FINDINGS.md` in your own pull request, and list the entries in the Proposed findings section of the pull request ([ADR-0020](docs/adr/0020-agent-push-and-merge-commit.md)). The review checks them. Use the next free F-number. `findings check` fails when two entries have the same ID. When two pull requests use the same F-number, the pull request that merges second renumbers its entries before the merge. Only the maintainer's lead session edits the milestone table in `docs/STATUS.md`. Search `docs/FINDINGS.md` first, because a settled finding is cited and not investigated again.
 
 ## How the maintainer merges
 
