@@ -96,7 +96,27 @@ def test_duplicate_ids_are_errors():
     text = "## F-0001 A\n- Status: open\n\n## F-0001 B\n- Status: open\n"
     findings, errors = parse(text)
     assert errors == []
-    assert check(findings, lambda sha: True) == ["line 4: F-0001 is used twice"]
+    assert check(findings, lambda sha: True) == [
+        "line 4: F-0001 'B' repeats F-0001 'A' at line 1"
+    ]
+
+
+def test_duplicate_id_message_names_both_entries(tmp_path):
+    path = tmp_path / "FINDINGS.md"
+    path.write_text(
+        "## F-0007 First\n- Status: open\n\n"
+        "## F-0008 Other\n- Status: open\n\n"
+        "## F-0007 Second\n- Status: open\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "bodecomp.findings", "check", "--path", str(path)],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+    assert result.returncode == 1
+    assert "line 7" in result.stderr and "'Second'" in result.stderr
+    assert "line 1" in result.stderr and "'First'" in result.stderr
 
 
 def test_fixed_commit_must_exist(tmp_path):

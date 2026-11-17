@@ -32,7 +32,8 @@ A byte-matching decompilation of the Xbox release: C++ that VC71 compiles back t
 
 - One writer to the Ghidra project at a time: the lead session or one `namer`, named in the Active block.
 - One owner per file or worktree. Long-running processes (the server, a delink) are listed in the Active block.
-- Only the lead session edits `docs/FINDINGS.md` and `docs/STATUS.md`. Subagents put proposed entries in their final reports.
+- A session writes its `docs/FINDINGS.md` entries in its own pull request, and the review checks them (ADR-0020). The `namer`, `matcher` and `reviewer` agents do not edit that file. They put proposed entries in their final reports.
+- Only the lead session edits `docs/STATUS.md`.
 
 ## Every task
 
