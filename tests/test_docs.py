@@ -119,20 +119,31 @@ def is_tracked_path(path, tracked):
     return any(name.startswith(prefix) for name in tracked)
 
 
+def repo_path(doc, target):
+    parts = []
+    for part in (PurePosixPath(doc).parent / target.split("#", 1)[0]).parts:
+        if part == "..":
+            if not parts:
+                return None
+            parts.pop()
+        elif part != ".":
+            parts.append(part)
+    return "/".join(parts)
+
+
+def test_repo_path_resolves_relative_links():
+    assert repo_path("docs/CODE_MAP.md", "../AGENTS.md#commands") == "AGENTS.md"
+    assert repo_path("docs/CODE_MAP.md", "./adr/") == "docs/adr"
+    assert repo_path("CONTRIBUTING.md", "../outside.md") is None
+
+
 def broken_links(doc, tracked):
     broken = []
-    base = PurePosixPath(doc).parent
     for target in MARKDOWN_LINK.findall(read(doc)):
         if re.match(r"[a-z]+:", target) or target.startswith("#"):
             continue
-        path = target.split("#", 1)[0]
-        parts = []
-        for part in (base / path).parts:
-            if part == "..":
-                parts.pop()
-            elif part != ".":
-                parts.append(part)
-        if not is_tracked_path("/".join(parts), tracked):
+        path = repo_path(doc, target)
+        if path is None or not is_tracked_path(path, tracked):
             broken.append(f"{doc}: {target}")
     return broken
 
