@@ -8,6 +8,7 @@ LINK_CHECKED_DOCS = [
     "CODING_STANDARDS.md",
     "docs/METHODOLOGY.md",
     "CONTRIBUTING.md",
+    "docs/SUBSYSTEMS.md",
 ]
 
 MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")
@@ -81,6 +82,32 @@ def test_status_and_methodology_list_the_same_milestones():
     status = milestone_rows("docs/STATUS.md")
     assert status != []
     assert status == milestone_rows("docs/METHODOLOGY.md")
+
+
+def subsystem_file_lines():
+    return re.findall(r"^- Files: (.*)$", read("docs/SUBSYSTEMS.md"), re.MULTILINE)
+
+
+def test_each_module_and_script_is_in_exactly_one_subsystem():
+    owned = [
+        path
+        for line in subsystem_file_lines()
+        for path in re.findall(r"`([^`]+)`", line)
+    ]
+    expected = sorted(
+        name
+        for name in tracked_files()
+        if (
+            name.startswith("bodecomp/")
+            and name.endswith(".py")
+            and name != "bodecomp/__init__.py"
+        )
+        or (name.startswith("tools/") and name.count("/") == 1)
+        or name.startswith("tools/ghidra_scripts/")
+    )
+    missing = [name for name in expected if name not in owned]
+    repeated = sorted({name for name in owned if owned.count(name) > 1})
+    assert (missing, repeated) == ([], [])
 
 
 def is_tracked_path(path, tracked):
