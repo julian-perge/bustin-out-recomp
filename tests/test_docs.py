@@ -292,3 +292,12 @@ def test_reviewer_fails_a_park_without_the_donor_form():
     assert "GameCube donor" in line
     assert "score of the donor's form" in line
     assert "gives no score for the donor's form is a fail" in line
+
+
+def test_workflow_links_the_ignored_inputs_into_a_matcher_worktree():
+    text = read("docs/WORKFLOW.md")
+    section = text.split("### A matcher's worktree", 1)[1].split("\n## ", 1)[0]
+    assert 'git worktree add "$wt" -b <branch>' in section
+    links = ["build/target", "build/strings.tsv", "orig", "tools/wibo", "tools/xdk"]
+    for path in links:
+        assert f'ln -s "$PWD/{path}" "$wt/{path}"' in section, path
