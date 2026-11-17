@@ -37,6 +37,8 @@ An issue that is one task with acceptance criteria goes straight to Build.
 
 ## Labels
 
+State labels say who acts next. An open issue carries exactly one. Change one only when the user approves it.
+
 | Label | Meaning |
 | --- | --- |
 | `needs-triage` | Nobody has judged the issue yet. |
@@ -45,7 +47,11 @@ An issue that is one task with acceptance criteria goes straight to Build.
 | `ready-for-human` | The work needs the user's hands or judgment. |
 | `wontfix` | The issue will not be done. |
 
-An open issue carries exactly one of these. Change a label only when the user approves it.
+Flag labels say something about the work. An issue carries any number of them, on top of its state label, and never in place of it. The Plan stage adds a flag without asking. A new flag label needs the user's approval.
+
+| Label | Meaning |
+| --- | --- |
+| `ghidra-writer` | The task changes the Ghidra project. The assignee of an open task with this label is the lock. An unassigned task with the label is queued and locks nothing ([ADR-0021](../adr/0021-generated-session-state-and-ghidra-freshness.md)). |
 
 ## Design
 
@@ -63,7 +69,7 @@ The pull request of a spec merges before the Plan stage, because task branches s
 
 Publish each task as a sub-issue of the source issue. Add blockers as native `blocked_by` dependencies. A task body names no blocker: a body list goes stale, and the native edges stay true.
 
-Put the `ghidra-writer` label on each task that changes the Ghidra project. At most one open task with the label is assigned at a time. The assignee is the lock. The label is not one of the exclusive labels of the Labels section ([ADR-0021](../adr/0021-generated-session-state-and-ghidra-freshness.md)).
+Put the `ghidra-writer` label on each task that changes the Ghidra project. At most one open task with the label is assigned at a time. The assignee is the lock.
 
 Task body: `Parent`, `Spec` (the spec file's path), `What to build`, `Acceptance criteria`, `Verification` (the exact command). Label each task `ready-for-agent`.
 
