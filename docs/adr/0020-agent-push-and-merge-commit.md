@@ -9,7 +9,7 @@
 Issue #56 moves the repo to the current agent-skills layout and removes the questions that did not need a decision.
 
 - `AGENTS.md` said that every push needs the user's OK. Eight of 16 questions in the build and review sessions of issues #2 to #7 asked for it.
-- ADR-0016 asked for a merge commit only for a pull request whose findings cite its own commits. Pull request #11 (issue #2) merged with a squash. The squash removed the commits that F-0082 and F-0083 cite (067ddf7). `bodecomp.findings check` then failed on GitHub.
+- ADR-0016 asked for a merge commit only for a pull request whose findings cite its own commits. Pull request #11 (issue #2) merged with a squash: `git cat-file -p 067ddf7` shows one parent, and the four commits of the branch are not in `main`. F-0082 and F-0083 cited commits of that branch, so `bodecomp.findings check` failed on GitHub. Both entries now cite the squash commit 067ddf7.
 - Only the lead session edited `docs/FINDINGS.md`. A stage session had to put its entries in the pull request text, and a later session copied them in. Two pull requests that open at the same time can both take the next F-number.
 
 ## Decision
