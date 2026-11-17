@@ -1,6 +1,6 @@
 # ADR-0016: The public repo starts from one fresh commit, and a tracked file lists the old hashes
 
-- **Status:** Accepted (user decision)
+- **Status:** Accepted (user decision). The merge rule is amended by [ADR-0020](0020-agent-push-and-merge-commit.md).
 - **Date:** 2026-11-15
 
 ## Context
@@ -19,4 +19,4 @@ The repo had 147 commits of private work before it became a public GitHub projec
 ## Consequences
 
 - A reader cannot look up a private hash in the public repo. The list shows only that the commit existed. This also applies to the private hashes that the evidence text of some entries names.
-- An entry that is fixed after the first public commit cites a commit that must stay in the public history. A squash merge and a rebase merge on GitHub give the commits of a pull request new hashes. A pull request whose findings cite its own commits needs a merge commit, or the entries need the new hash after the merge.
+- An entry that is fixed after the first public commit cites a commit that must stay in the public history. A squash merge and a rebase merge on GitHub give the commits of a pull request new hashes. Every pull request therefore merges with a merge commit, never squash or rebase ([ADR-0020](0020-agent-push-and-merge-commit.md) replaces the earlier rule that asked for a merge commit only when findings cite the commits of the pull request).

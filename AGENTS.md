@@ -26,7 +26,7 @@ A byte-matching decompilation of the Xbox release: C++ that VC71 compiles back t
 - A causal claim ("X caused Y") says whether it rests on evidence or is a guess.
 - Repo documents are ASCII only.
 - A toolchain problem that costs time becomes a GitHub issue labeled `needs-triage`, with the symptom, the cause (evidence or guess) and the fix.
-- Git: local commits and merges to local `main` are allowed in this repo. Pushing or adding a remote needs the user's OK.
+- Git: local commits and merges to local `main` are allowed in this repo. An agent pushes a feature branch and opens a pull request without asking. A push to `main` and adding a remote need the user's OK.
 
 ## Ownership
 
@@ -43,7 +43,7 @@ Before each commit, run `uv run pytest -q && uv run ruff check . && uv run pytho
 - Tasks are tracked in GitHub Issues for julian-perge/bustin-out-recomp, with the `gh` CLI. `/agent-skills:plan` creates one sub-issue per task. `tasks/` is git-ignored scratch.
 - Specs are files at `spec/<issue>-<slug>.md`, not `SPEC.md`.
 - ADRs go in `docs/adr/`. Read `GLOSSARY.md` and `docs/adr/` (those that exist) before design work.
-- Read `docs/agents/workflow.md` before any `/agent-skills` command.
+- Start each `/agent-skills` stage with `agent-skills brief <stage> <n>`. It prints every rule of `docs/agents/workflow.md` that the stage needs, so do not read that file in a stage. Before other work in this repo, read all of `docs/agents/workflow.md`.
 
 ## End of a batch
 
