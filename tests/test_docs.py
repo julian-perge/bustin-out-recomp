@@ -165,3 +165,21 @@ def test_tracked_markdown_files_are_ascii():
         if name.endswith(".md") and path.is_file() and not path.read_bytes().isascii():
             not_ascii.append(name)
     assert not_ascii == []
+
+
+REMOVED_MARKERS = ("active:" + "start", "active:" + "end")
+MARKER_EXEMPT = ("spec/",)
+
+
+def test_no_tracked_file_names_the_removed_active_block_markers():
+    # The spec of issue #56 names the markers, so spec/ is exempt.
+    found = []
+    for name in sorted(tracked_files()):
+        if name.startswith(MARKER_EXEMPT) or not (ROOT / name).is_file():
+            continue
+        try:
+            text = read(name)
+        except UnicodeDecodeError:
+            continue
+        found += [f"{name}: {m}" for m in REMOVED_MARKERS if m in text]
+    assert found == []

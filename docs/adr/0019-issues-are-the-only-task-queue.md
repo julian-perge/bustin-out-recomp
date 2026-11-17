@@ -1,6 +1,6 @@
 # ADR-0019: GitHub issues are the only task queue, and STATUS holds no backlog
 
-- **Status:** Accepted (user decision, 2026-11-15; the list of issues approved with the plan of issue #20, 2026-11-17)
+- **Status:** Accepted (user decision, 2026-11-15; the list of issues approved with the plan of issue #20, 2026-11-17). The Active block is removed by [ADR-0021](0021-generated-session-state-and-ghidra-freshness.md)
 - **Date:** 2026-11-17
 
 ## Context
