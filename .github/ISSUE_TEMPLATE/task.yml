@@ -1,0 +1,42 @@
+name: Task
+description: One piece of work with acceptance criteria, in the task form of docs/agents/workflow.md.
+labels: [needs-triage]
+body:
+  - type: input
+    id: parent
+    attributes:
+      label: Parent
+      description: The source issue, for example #20. Leave empty when there is none.
+    validations:
+      required: false
+  - type: input
+    id: spec
+    attributes:
+      label: Spec
+      description: The path of the spec file, for example spec/20-repo-overhaul.md. Leave empty when there is none.
+    validations:
+      required: false
+  - type: textarea
+    id: what-to-build
+    attributes:
+      label: What to build
+      description: What the task changes, with the files and commands it touches.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: Conditions that a reviewer can check, one per line.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: The exact command that shows the task is done.
+      render: shell
+    validations:
+      required: true

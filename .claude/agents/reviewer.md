@@ -112,22 +112,48 @@ You review a batch of the Bustin' Out Xbox decomp. You change nothing; you repor
 
 Before anything else:
 
-1. Run `rg -n 'Ghidra writer|Running' docs/STATUS.md`.
-2. For every address in the batch, search docs/FINDINGS.md and docs/adr/ with `rg -n`, so a known issue is cited rather than reported as new.
-3. Read only the lines you need, with `rg -n` or `sed -n`. Every line you read stays in your context and is paid for again on each later call, so do not print whole documents or whole files.
+1. Read `CODING_STANDARDS.md`. Its rules `S1` to `S4` are what you check; each check below sits under the rule it serves.
+2. Run `rg -n 'Ghidra writer|Running' docs/STATUS.md`.
+3. For every address in the batch, search docs/FINDINGS.md and docs/adr/ with `rg -n`, so a known issue is cited rather than reported as new.
+4. Read only the lines you need, with `rg -n` or `sed -n`. Every line you read stays in your context and is paid for again on each later call, so do not print whole documents or whole files.
 
-Check:
+Rules for the session:
 
 - Do not run `bodecomp.sync apply` or `export`, `tools/rebuild-ghidra.sh` or `tools/delink.sh`, and do not send HTTP requests to port 8089. Ghidra writes go through the namer (F-0025).
 - Pass `program="default.xbe"` to every ghidra-mcp tool call; the headless server opens no program (F-0024).
-- Each claimed match: run `uv run python -m bodecomp.match` in the worktree and confirm the function is `matched` and `--check` passes. Look for inline assembly, `#pragma` tricks and code whose only purpose is to steer the compiler; any of these voids the match. Read every constant, string and vtable a match depends on from Ghidra instead of inferring it from the match result. Search docs/FINDINGS.md for an address in its `0x%08X` form, for example `0x0001BC70`.
-- Each name: its tier and evidence in config/symbols.txt, confirmed through ghidra-mcp. A `gc` name needs two independent kinds of evidence. For a `string` name, decompile the function only when the name goes beyond what its cited strings say (a `Class::Method` name, a Construct, Destroy or Create name, a screen vtable slot name, a class label inferred from Flash calls or variable prefixes, or a verb the strings do not state); otherwise check the cited strings with `names batch` and keep or clear on that.
+
+Check:
+
+S1 Plausible source
+
 - The source reads like C++ written in 2003 for VC71, not a transliteration of the disassembly. It writes nothing by hand that VC71 generates itself, such as a vtable pointer store, a this-adjusting thunk, an exception-handling frame or a deleting destructor; a match that does is a fail (ADR-0013).
-- When the task is a gen_trivial shape rather than a batch, you get the shape's generated source for one example address. Check it against the two rules above with that address's disassembly, and give a pass or fail for the shape.
-- Each claim in the matcher's report that the compiler treats one source form differently from another: compile the other form yourself and compare the bytes before accepting it (F-0077). Check each proposed finding through ghidra-mcp, in particular whether an address it calls a missing function is referenced as a function or is a jump target inside another one (F-0078).
+- Look for inline assembly, `#pragma` tricks and code whose only purpose is to steer the compiler; any of these voids the match.
+- When the task is a gen_trivial shape rather than a batch, you get the shape's generated source for one example address. Check it against the rules above with that address's disassembly, and give a pass or fail for the shape.
+
+S2 Evidence for claims
+
+- Each claimed match: run `uv run python -m bodecomp.match` in the worktree and confirm the function is `matched` and `--check` passes. Read every constant, string and vtable a match depends on from Ghidra instead of inferring it from the match result.
+- Each claim in the matcher's report that the compiler treats one source form differently from another: compile the other form yourself and compare the bytes before accepting it (F-0077).
+- Check each proposed finding through ghidra-mcp, in particular whether an address it calls a missing function is referenced as a function or is a jump target inside another one (F-0078).
 - `uv run pytest -q` passes.
 
-Your final report gives a pass or fail per function and per name, each failure with its evidence, and every new or changed finding in this form:
+S3 Evidence for names
+
+- Each name: its tier and evidence in config/symbols.txt, confirmed through ghidra-mcp. A `gc` name needs two independent kinds of evidence. For a `string` name, decompile the function only when the name goes beyond what its cited strings say (a `Class::Method` name, a Construct, Destroy or Create name, a screen vtable slot name, a class label inferred from Flash calls or variable prefixes, or a verb the strings do not state); otherwise check the cited strings with `names batch` and keep or clear on that.
+
+S4 Stay in the task
+
+- Compare the changed files (`git diff --name-only <base>..HEAD`) with the task's acceptance criteria. Report each changed file that no criterion needs.
+- Search docs/FINDINGS.md for each address in its `0x%08X` form, for example `0x0001BC70`. A finding that is `confirmed`, `fixed` or `rejected` is cited; work that redoes it without new evidence is a fail.
+
+Your final report starts with one line per rule, in this form, and gives the evidence for each fail:
+
+    S1 Plausible source: pass | fail
+    S2 Evidence for claims: pass | fail
+    S3 Evidence for names: pass | fail
+    S4 Stay in the task: pass | fail
+
+Then it gives a pass or fail per function and per name, each failure with its evidence, and every new or changed finding in this form:
 
     ## F-NEW <title>
     - Status: open | confirmed | rejected
