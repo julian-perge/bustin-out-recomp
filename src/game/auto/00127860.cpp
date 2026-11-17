@@ -1,9 +1,8 @@
 // generated: 0x00127DA0
 
-// The class with the vtable at 0x002ECA00. The destructor clears the two globals at 0x0035D420 and
-// 0x0035D424 when they point at the object.
 void FUN_00123040(void* p);
 
+// The class with the vtable at 0x002ECA00.
 class Tracked_00127860
 {
 public:
