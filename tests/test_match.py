@@ -7,6 +7,7 @@ from bodecomp.cl import CL, WIBO, CompileResult, compile_cpp
 from bodecomp.coff import Reloc, parse
 from bodecomp.match import (
     FLAGS,
+    PASSED,
     Resolver,
     Result,
     Unresolved,
@@ -817,6 +818,14 @@ def test_generated_line_without_one_eight_digit_address_is_a_problem():
     ]
 
 
+def test_generated_line_in_a_header_is_a_problem(tmp_path):
+    root = project(tmp_path, CLAIM)
+    (root / "src/game/Foo.h").write_text("#pragma once\n// generated: 0x00011020\n")
+    (root / "src/m0/fn.h").write_text("// generated: 0x00011020\n")
+    problem = "src/game/Foo.h:2: generated is read only in a .cpp file, not in a header"
+    assert declared_run(root) == ([], [problem])
+
+
 # A class with a virtual base. The original destructor at 0x00011000 stores
 # the vtable at 0x00020000. Slot 0 of the vtable is the deleting destructor at
 # 0x00011030, which calls the destructor. Slot 1 is the thunk at 0x00011020,
@@ -1061,11 +1070,11 @@ def test_generated_code_is_not_equal_when_the_only_check_that_reached_it_failed(
 
 
 def test_generated_code_is_equal_when_a_later_check_that_reached_it_passed():
-    assert reached_twice("table function") == ""
+    assert reached_twice("table function") == PASSED
 
 
 def test_generated_code_stays_equal_when_a_later_check_that_reached_it_failed():
-    assert reached_twice("function table") == ""
+    assert reached_twice("function table") == PASSED
 
 
 def test_item_with_two_relocations_that_point_elsewhere_reports_the_first():

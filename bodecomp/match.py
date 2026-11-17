@@ -54,6 +54,7 @@ OPERATOR_CODES = {"operator new": "??2", "operator delete": "??3"}
 # the offset of the exception list in the thread block that FS points to, so
 # the original holds a plain 0 there and has no relocation.
 ABSOLUTE = {"__except_list": 0}
+PASSED = "passed"
 
 
 @dataclass(frozen=True)
@@ -225,8 +226,8 @@ class Resolver:
         self.declared = declared or {}
         # Code without an address comment that a check compared with the
         # original, by the original address of its first byte. The value is
-        # "" when a check that reached it passed, and the problem of the first
-        # check that reached it when none passed.
+        # PASSED when a check that reached it passed, and the problem of the
+        # first check that reached it when none passed.
         self.checked: dict[int, str] = {}
         # The address that such code jumps to, when it ends in a jump.
         self.jumps: dict[int, int] = {}
@@ -340,7 +341,7 @@ class Resolver:
             if not self.coff.sections[section - 1].characteristics & EXECUTABLE:
                 continue
             if failure is None:
-                self.checked[address] = ""
+                self.checked[address] = PASSED
             else:
                 self.checked.setdefault(address, str(failure))
         if failure:
@@ -485,6 +486,15 @@ def scan(root: Path) -> tuple[list[Marked], list[str]]:
         lines, bad = read_declared(root, rel)
         declared.update((d.where, d) for d in lines)
         misdeclared.update(dict.fromkeys(bad))
+    for path in sorted((root / SRC).rglob("*.h")):
+        rel = path.relative_to(root)
+        if any(rel.is_relative_to(s) for s in SKIP):
+            continue
+        for i, line in enumerate(path.read_text().splitlines(), 1):
+            if GENERATED_LINE.match(line.strip()):
+                problems.append(
+                    f"{rel}:{i}: generated is read only in a .cpp file, not in a header"
+                )
     seen: dict[int, Path] = {}
     for m in marked:
         if m.address in seen:
@@ -606,11 +616,11 @@ def check_source(
         if problem is None:
             detail = "the check reached no compiler-generated function here"
             results.append(Result(m.address, "error", source, "", detail))
-        elif problem:
-            results.append(Result(m.address, "nonmatching", source, "", problem))
-        else:
+        elif problem == PASSED:
             jump = resolver.jumps.get(m.address)
             results.append(Result(m.address, "matched", source, "100.0", "", jump))
+        else:
+            results.append(Result(m.address, "nonmatching", source, "", problem))
     return results
 
 
