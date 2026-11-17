@@ -32,7 +32,7 @@ How to run the tools without rediscovering them. The method is in `docs/METHODOL
 
 1. With the server running, `uv run python -m bodecomp.sync export`, then commit `config/symbols.txt`.
 2. Stop the server, then `tools/rebuild-ghidra.sh`. It refuses to run while the server is up or `symbols.txt` is uncommitted. After the import it runs `tools/create-functions.sh` over every function start in `symbols.txt`, so functions that the import's analysis misses are created again, and it fails if any listed start does not end up as a function start.
-3. Start the server, open the program (`curl -s -X POST http://127.0.0.1:8089/open_program -H 'Content-Type: application/json' -d '{"path": "/default.xbe", "auto_analyze": false}'`), then `uv run python -m bodecomp.sync apply` and `uv run python -m bodecomp.sync check`. Expect 0 differences both ways.
+3. Start the server, open the program (`curl -s -X POST http://127.0.0.1:8089/open_program -H 'Content-Type: application/json' -d '{"path": "/default.xbe", "auto_analyze": false}'`), then `uv run python -m bodecomp.sync apply` and `uv run python -m bodecomp.sync check`. Expect 0 differences both ways. With 0 differences, `sync check` writes `ghidra/.sync-stamp`: the SHA-256 of `config/symbols.txt` and the SHA-256 of its `function` lines. No other command writes it, and a check with a difference leaves it unchanged (ADR-0021).
 
 ## Delink and re-link
 

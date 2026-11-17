@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 from collections.abc import Callable
@@ -10,6 +11,7 @@ from pathlib import Path
 from bodecomp.symbols import Entry, make_unique, read_symbols, write_symbols
 
 SYMBOLS = Path("config/symbols.txt")
+STAMP = Path("ghidra/.sync-stamp")
 AUTO_PREFIXES = (
     "FUN_",
     "thunk_FUN_",
@@ -172,6 +174,32 @@ def apply_names(
     return renamed, [e for e in wanted if (e.address, e.kind) not in have]
 
 
+def stamp_hashes(path: Path) -> dict[str, str]:
+    """Return the SHA-256 of the whole file and of its `function` lines.
+
+    The function hash covers those lines in file order, each with its line end,
+    so it equals `awk -F'\\t' '$2 == "function"' FILE | sha256sum`.
+    """
+    data = path.read_bytes()
+    functions = b"".join(
+        line
+        for line in data.splitlines(keepends=True)
+        if line.split(b"\t")[1:2] == [b"function"]
+    )
+    return {
+        "symbols": hashlib.sha256(data).hexdigest(),
+        "functions": hashlib.sha256(functions).hexdigest(),
+    }
+
+
+def write_stamp(symbols: Path, stamp: Path) -> None:
+    text = "".join(f"{key} {value}\n" for key, value in stamp_hashes(symbols).items())
+    try:
+        stamp.write_text(text)
+    except OSError as error:
+        print(f"could not write {stamp}: {error}")
+
+
 def _apply(changes: list[tuple[int, str, str]]) -> None:
     from bodecomp import ghidra_api
 
@@ -243,7 +271,10 @@ def main(argv: list[str] | None = None) -> None:
         f"{len(changes)} name differences, {len(missing)} missing, "
         f"{len(extra)} not in symbols.txt"
     )
-    sys.exit(1 if changes or missing or extra else 0)
+    if changes or missing or extra:
+        sys.exit(1)
+    write_stamp(SYMBOLS, STAMP)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

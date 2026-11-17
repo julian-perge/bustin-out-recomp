@@ -24,7 +24,7 @@ Purpose: keep the Ghidra project a copy of the text files in git, so that it can
 
 - Files: `bodecomp/symbols.py`, `bodecomp/sync.py`, `bodecomp/ghidra_api.py`, `tools/rebuild-ghidra.sh`, `tools/ghidra-mcp-headless.sh`, `tools/env.sh`
 - Input: `orig/default.xbe` and `config/symbols.txt` (address, kind, size, name, tier and evidence for every name).
-- Output: the Ghidra project in `ghidra/` (not in git), and `config/symbols.txt` after an export.
+- Output: the Ghidra project in `ghidra/` (not in git), `config/symbols.txt` after an export, and `ghidra/.sync-stamp` after a `sync check` with 0 differences.
 - Commands: `tools/ghidra-mcp-headless.sh` starts the ghidra-mcp server on port 8089. `uv run python -m bodecomp.sync export|apply|check` copies names from Ghidra to the file, from the file to Ghidra, or compares both ways. `tools/rebuild-ghidra.sh` imports the XBE again with the server stopped, then creates every function start that `config/symbols.txt` lists.
 - How: `tools/env.sh` sets `GHIDRA_HOME` for every script that runs Ghidra (`tools/delink.sh`, `tools/create-functions.sh` and `tools/export-strings.sh` too). `symbols.py` reads and writes `config/symbols.txt`; most other subsystems use it. `ghidra_api.py` sends HTTP requests to the server for `sync.py`.
 - Tests: `tests/test_symbols.py`, `tests/test_sync.py`, `tests/test_env_sh.py`.
