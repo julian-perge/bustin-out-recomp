@@ -1,3 +1,6 @@
+import hashlib
+from dataclasses import replace
+
 import pytest
 
 from bodecomp import sync
@@ -246,3 +249,93 @@ def test_export_takes_ghidra_names_when_told_to(tmp_path, monkeypatch):
     monkeypatch.setattr(sync, "_apply", lambda changes: None)
     sync.main(["export", "--accept-ghidra-names"])
     assert read_symbols(symbols) == named
+
+
+STAMP_ENTRIES = [
+    Entry(0x10000, "data", 0, "XBE_FILE_HEADER_00010000", "sdk", "xbe-loader"),
+    Entry(0x11000, "function", 20, "CreateThread", "sdk", "xbe-loader"),
+    Entry(0x11100, "function", 8, "FUN_00011100", "auto", ""),
+    Entry(0x12000, "data", 4, "g_count", "string", "read by function 0x11000"),
+]
+
+
+def test_check_with_no_difference_writes_the_stamp(tmp_path, monkeypatch):
+    symbols = tmp_path / "symbols.txt"
+    write_symbols(symbols, STAMP_ENTRIES)
+    stamp = tmp_path / "ghidra" / ".sync-stamp"
+    stamp.parent.mkdir()
+    monkeypatch.setattr(sync, "SYMBOLS", symbols)
+    monkeypatch.setattr(sync, "STAMP", stamp)
+    monkeypatch.setattr(sync, "_ghidra_entries", lambda: (STAMP_ENTRIES, STAMP_ENTRIES))
+    with pytest.raises(SystemExit) as stop:
+        sync.main(["check"])
+    assert stop.value.code == 0
+    lines = symbols.read_bytes().splitlines(keepends=True)
+    function_lines = b"".join(
+        line for line in lines if line.split(b"\t")[1] == b"function"
+    )
+    assert function_lines.count(b"\n") == 2
+    assert stamp.read_text() == (
+        f"symbols {hashlib.sha256(symbols.read_bytes()).hexdigest()}\n"
+        f"functions {hashlib.sha256(function_lines).hexdigest()}\n"
+    )
+
+
+def test_check_with_a_difference_leaves_the_stamp_alone(tmp_path, monkeypatch):
+    symbols = tmp_path / "symbols.txt"
+    write_symbols(symbols, STAMP_ENTRIES)
+    stamp = tmp_path / "ghidra" / ".sync-stamp"
+    stamp.parent.mkdir()
+    stamp.write_text("symbols old\nfunctions old\n")
+    renamed = [
+        STAMP_ENTRIES[0],
+        replace(STAMP_ENTRIES[1], name="OtherName"),
+        STAMP_ENTRIES[2],
+    ]
+    monkeypatch.setattr(sync, "SYMBOLS", symbols)
+    monkeypatch.setattr(sync, "STAMP", stamp)
+    monkeypatch.setattr(sync, "_ghidra_entries", lambda: (renamed, renamed))
+    with pytest.raises(SystemExit) as stop:
+        sync.main(["check"])
+    assert stop.value.code == 1
+    assert stamp.read_text() == "symbols old\nfunctions old\n"
+
+
+@pytest.mark.parametrize(
+    "ghidra",
+    [
+        STAMP_ENTRIES[:2],
+        [*STAMP_ENTRIES, Entry(0x11200, "function", 4, "FUN_00011200", "auto", "")],
+    ],
+    ids=["missing in Ghidra", "missing in symbols.txt"],
+)
+def test_check_with_a_difference_does_not_write_a_new_stamp(
+    tmp_path, monkeypatch, ghidra
+):
+    symbols = tmp_path / "symbols.txt"
+    write_symbols(symbols, STAMP_ENTRIES)
+    stamp = tmp_path / "ghidra" / ".sync-stamp"
+    stamp.parent.mkdir()
+    monkeypatch.setattr(sync, "SYMBOLS", symbols)
+    monkeypatch.setattr(sync, "STAMP", stamp)
+    monkeypatch.setattr(sync, "_ghidra_entries", lambda: (ghidra, ghidra))
+    with pytest.raises(SystemExit) as stop:
+        sync.main(["check"])
+    assert stop.value.code == 1
+    assert not stamp.exists()
+
+
+def test_check_without_a_ghidra_directory_keeps_its_exit_code(
+    tmp_path, monkeypatch, capsys
+):
+    symbols = tmp_path / "symbols.txt"
+    write_symbols(symbols, STAMP_ENTRIES)
+    stamp = tmp_path / "ghidra" / ".sync-stamp"
+    monkeypatch.setattr(sync, "SYMBOLS", symbols)
+    monkeypatch.setattr(sync, "STAMP", stamp)
+    monkeypatch.setattr(sync, "_ghidra_entries", lambda: (STAMP_ENTRIES, STAMP_ENTRIES))
+    with pytest.raises(SystemExit) as stop:
+        sync.main(["check"])
+    assert stop.value.code == 0
+    assert not stamp.exists()
+    assert "could not write" in capsys.readouterr().out
