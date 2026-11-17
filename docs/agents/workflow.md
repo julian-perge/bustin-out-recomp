@@ -63,6 +63,8 @@ The pull request of a spec merges before the Plan stage, because task branches s
 
 Publish each task as a sub-issue of the source issue. Add blockers as native `blocked_by` dependencies. A task body names no blocker: a body list goes stale, and the native edges stay true.
 
+Put the `ghidra-writer` label on each task that changes the Ghidra project. At most one open task with the label is assigned at a time. The assignee is the lock. The label is not one of the exclusive labels of the Labels section ([ADR-0021](../adr/0021-generated-session-state-and-ghidra-freshness.md)).
+
 Task body: `Parent`, `Spec` (the spec file's path), `What to build`, `Acceptance criteria`, `Verification` (the exact command). Label each task `ready-for-agent`.
 
 `tasks/plan.md` holds the plan's risks and an ordered list of the task issue numbers. It is git-ignored scratch, so it holds no decision. Post decisions on the source issue, as Reports says. A plan is complete when every issue it lists is closed, and a complete plan can be replaced without asking.

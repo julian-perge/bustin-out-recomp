@@ -6,7 +6,8 @@ How to run the tools without rediscovering them. The method is in `docs/METHODOL
 
 - Start: `tools/ghidra-mcp-headless.sh` (port 8089, project `ghidra/BustinOut.gpr`). Check it with `curl -s http://127.0.0.1:8089/check_connection`.
 - Stop: `pkill -f '[G]hidraMCPHeadlessServer'`. The brackets keep the pattern from matching the shell that runs `pkill`: in a Claude Code Bash call, the plain pattern also stops that shell.
-- Writers: only the lead session or one `namer` agent, recorded as Ghidra writer in the Active block of `docs/STATUS.md` (ADR-0003). `matcher` and `reviewer` have only read-only ghidra-mcp tools, and their instructions forbid the Bash routes that still write (F-0025).
+- Writers: only the lead session or one `namer` agent. A task that changes the Ghidra project has the `ghidra-writer` label, and its assignee is the lock. At most one open task with the label is assigned. The hook prints it, and `namer` and `reviewer` query it with `gh issue list --label ghidra-writer --state open --assignee '*'` (ADR-0003, ADR-0021).
+- A Ghidra-writer task may change only what a tracked text file records. It commits `config/symbols.txt` after `sync export`. Any other change in Ghidra is scratch and is lost on a rebuild (ADR-0002, ADR-0021). The task does not count it as done. `matcher` and `reviewer` have only read-only ghidra-mcp tools, and their instructions forbid the Bash routes that still write (F-0025).
 - `.mcp.json` starts the bridge with `--no-lazy`, so every tool group is registered when it connects. A group loaded later with `load_tool_group` never reaches a subagent that is already running (F-0023). Use `search_tools` with keywords to find a tool.
 - The headless server opens no program. Pass `program="default.xbe"` to every ghidra-mcp tool call (F-0024).
 - `apply_data_type` clears the range unless `clear_existing` is false (F-0011).
@@ -130,7 +131,7 @@ Read-only tools, as named in ghidra-mcp 7.0.0. Confirm a name with `check_tools`
 
 1. `uv run pytest -q`.
 2. `uv run python -m bodecomp.ledger`, then `uv run python -m bodecomp.findings check`.
-3. Replace the Active block of `docs/STATUS.md`, with an Evidence line that gives the command output or the Ghidra reference that shows the state of the batch. Add or update FINDINGS entries from the agents' reports.
+3. Add or update FINDINGS entries from the agents' reports. The Verification section of the pull request gives the command output or the Ghidra reference that shows the state of the batch.
 
 At the end of a plan, also set every unfinished `active` finding back to `open`. Record a decision as an ADR when it is settled (ADR-0014).
 

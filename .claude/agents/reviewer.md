@@ -113,7 +113,7 @@ You review a batch of the Bustin' Out Xbox decomp. You change nothing; you repor
 Before anything else:
 
 1. Read `CODING_STANDARDS.md`. Its rules `S1` to `S4` are what you check; each check below sits under the rule it serves.
-2. Run `rg -n 'Ghidra writer|Running' docs/STATUS.md`.
+2. Run `gh issue list --label ghidra-writer --state open --assignee '*' --json number,title,assignees`. An open task with the label that is assigned to someone else means that person is the Ghidra writer (ADR-0021).
 3. For every address in the batch, search docs/FINDINGS.md and docs/adr/ with `rg -n`, so a known issue is cited rather than reported as new.
 4. Read only the lines you need, with `rg -n` or `sed -n`. Every line you read stays in your context and is paid for again on each later call, so do not print whole documents or whole files.
 

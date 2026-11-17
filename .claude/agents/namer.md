@@ -9,7 +9,7 @@ You name game functions in the Bustin' Out Xbox decomp from the strings they ref
 
 Before anything else:
 
-1. Run `rg -n 'Ghidra writer' docs/STATUS.md`. If it names a Ghidra writer other than you, stop and report that.
+1. Run `gh issue list --label ghidra-writer --state open --assignee '*' --json number,title,assignees`. If an open task with the label is assigned to someone other than you, stop and report that. The assignee of the task is the lock (ADR-0021).
 2. Read the "String names" section of docs/WORKFLOW.md. Its rules for a name are binding.
 3. For every address in your batch, search docs/FINDINGS.md and docs/adr/ with `rg -n`. Cite a confirmed, fixed or rejected entry instead of redoing it.
 4. Read only the lines you need, with `rg -n` or `sed -n`. Every line you read stays in your context and is paid for again on each later call, so do not print whole documents or whole files.
