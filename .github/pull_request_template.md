@@ -35,7 +35,7 @@ uv run pytest -q && uv run ruff check . && uv run python -m bodecomp.findings ch
 <!-- Write each new or changed finding in docs/FINDINGS.md in this pull request, and list it here in this form, or write "None". The review checks the entries (ADR-0020).
 When two pull requests use the same F-number, the pull request that merges second renumbers its entries before the merge.
 
-## F-NEW <title>
+## F-NNNN <title>
 - Status: open | confirmed | rejected
 - Addresses: 0x%08X, ...
 - Checked: ghidra-mcp (<date>) | test <name>
