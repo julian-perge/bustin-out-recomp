@@ -19,3 +19,6 @@ __pycache__/
 
 # Plan scratch of the agent-skills workflow.
 /tasks/
+
+# Per-machine MCP config. It names the path to uv, which differs between machines.
+/.mcp.json
