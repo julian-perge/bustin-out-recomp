@@ -23,3 +23,4 @@ Each decision about method or architecture gets a numbered file with Status, Dat
 | [0017](0017-default-flags-gain-gx.md) | The default flags gain `/GX`, so a function with an exception-handling frame can match | Accepted |
 | [0018](0018-milestones-renumbered-and-on-github.md) | M5 is "Larger functions", the harness and the layout become M6 and M7, and GitHub milestones group the issues | Accepted |
 | [0019](0019-issues-are-the-only-task-queue.md) | GitHub issues are the only task queue, `docs/STATUS.md` holds no backlog, and the Active block has an Evidence line | Accepted |
+| [0020](0020-agent-push-and-merge-commit.md) | An agent pushes a feature branch without asking, every pull request merges with a merge commit, and a stage session writes its own findings | Accepted |
