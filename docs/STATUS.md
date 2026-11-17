@@ -1,6 +1,6 @@
 # Status
 
-The milestone table. The state of the work (branch, running processes, Ghidra writer, pull requests, assigned issues, next command, last merged pull request, open findings) is not kept here. `tools/session-start.sh` prints it from git, GitHub and `docs/FINDINGS.md` at each session start (ADR-0021). Details belong in result documents, `docs/FINDINGS.md` and `docs/adr/`.
+The milestone table. The state of the work (branch, running processes, Ghidra project freshness, Ghidra writer, pull requests, assigned issues, next command, last merged pull request, open findings) is not kept here. `tools/session-start.sh` prints it from git, GitHub and `docs/FINDINGS.md` at each session start (ADR-0021). Details belong in result documents, `docs/FINDINGS.md` and `docs/adr/`.
 
 ## Milestones
 

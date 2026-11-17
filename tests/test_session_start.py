@@ -3,8 +3,14 @@ import shutil
 import socket
 import subprocess
 import threading
+from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+
+import pytest
+
+from bodecomp import sync
+from bodecomp.symbols import Entry, write_symbols
 
 SCRIPT = Path(__file__).resolve().parent.parent / "tools/session-start.sh"
 FINDINGS = (
@@ -269,6 +275,98 @@ def test_reports_the_server_when_it_answers(tmp_path):
         assert f"ghidra-mcp: up at {url}" in out
     finally:
         server.shutdown()
+
+
+SYMBOLS = [
+    Entry(0x10000, "data", 0, "XBE_FILE_HEADER_00010000", "sdk", "xbe-loader"),
+    Entry(0x11000, "function", 20, "CreateThread", "sdk", "xbe-loader"),
+    Entry(0x12000, "data", 4, "g_count", "string", "read by function 0x11000"),
+]
+REBUILD = "run tools/rebuild-ghidra.sh, then sync apply and sync check"
+
+
+def stamped_project(tmp_path: Path, monkeypatch) -> Path:
+    """A project whose stamp was written by `sync check` with no difference."""
+    root = project(_repo(tmp_path))
+    (root / "config").mkdir()
+    (root / "ghidra").mkdir()
+    write_symbols(root / "config/symbols.txt", SYMBOLS)
+    monkeypatch.setattr(sync, "SYMBOLS", root / "config/symbols.txt")
+    monkeypatch.setattr(sync, "STAMP", root / "ghidra/.sync-stamp")
+    monkeypatch.setattr(sync, "_ghidra_entries", lambda: (SYMBOLS, SYMBOLS))
+    with pytest.raises(SystemExit) as stop:
+        sync.main(["check"])
+    assert stop.value.code == 0
+    assert (root / "ghidra/.sync-stamp").exists()
+    return root
+
+
+def freshness_line(root: Path, tmp_path: Path) -> str:
+    result = run(root, closed_url(), Sources(tmp_path))
+    assert result.returncode == 0
+    assert len(result.stdout.splitlines()) <= 40
+    lines = [x for x in result.stdout.splitlines() if x.startswith("ghidra project:")]
+    assert len(lines) == 1, result.stdout
+    return lines[0]
+
+
+def test_a_stamp_from_sync_check_is_level(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    line = freshness_line(root, tmp_path)
+    assert line == "ghidra project: level with config/symbols.txt"
+
+
+def test_no_stamp_asks_for_a_rebuild(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    (root / "ghidra/.sync-stamp").unlink()
+    line = freshness_line(root, tmp_path)
+    assert line == f"ghidra project: no sync stamp, {REBUILD}"
+
+
+def test_an_unparsable_stamp_counts_as_no_stamp(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    (root / "ghidra/.sync-stamp").write_text("garbage\n")
+    line = freshness_line(root, tmp_path)
+    assert line == f"ghidra project: no sync stamp, {REBUILD}"
+
+
+def test_changed_function_lines_ask_for_a_rebuild(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    write_symbols(
+        root / "config/symbols.txt",
+        [*SYMBOLS, Entry(0x11100, "function", 8, "FUN_00011100", "auto", "")],
+    )
+    line = freshness_line(root, tmp_path)
+    assert line == f"ghidra project: function lines changed, {REBUILD}"
+
+
+def test_other_changed_lines_ask_for_sync_apply(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    write_symbols(
+        root / "config/symbols.txt",
+        [*SYMBOLS[:2], replace(SYMBOLS[2], name="g_other")],
+    )
+    line = freshness_line(root, tmp_path)
+    assert line == (
+        "ghidra project: names changed, run sync apply and sync check"
+    )
+
+
+def test_no_symbols_file_says_so(tmp_path):
+    root = project(_repo(tmp_path))
+    line = freshness_line(root, tmp_path)
+    assert line == "ghidra project: config/symbols.txt is missing"
+
+
+def test_uv_missing_prints_one_freshness_line_and_goes_on(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    sources = Sources(tmp_path)
+    sources.remove("uv")
+    result = run(root, closed_url(), sources)
+    assert result.returncode == 0
+    assert "ghidra project: unavailable (sync freshness failed)" in result.stdout
+    assert "last merged pull request: none" in result.stdout
+    assert len(result.stdout.splitlines()) <= 40
 
 
 def test_a_second_run_within_a_minute_does_not_call_gh_again(tmp_path):
