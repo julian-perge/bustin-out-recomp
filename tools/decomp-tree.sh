@@ -4,13 +4,14 @@ set -euo pipefail
 # Fills build/decomp-tree with Ghidra's decompiled C of every function, through the
 # running ghidra-mcp server. The server keeps one decompiler open for the sweep, so
 # it is much faster than one force_decompile call per function. A tree that is
-# already there is adopted. It is swept again only when it was never swept or its
-# last sweep did not finish. The script waits until the tree matches the program,
-# and exits 0 only then.
+# already there is adopted. It is swept again when it was never swept, when its last
+# sweep did not finish, or when the server spliced changes into it since the sweep.
+# The script waits until the tree matches the program, and exits 0 only then.
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 API=${GHIDRA_MCP_URL:-http://127.0.0.1:8089}
 POLL=${DECOMP_TREE_POLL_SECONDS:-15}
+TIMEOUT=${DECOMP_TREE_TIMEOUT_SECONDS:-1800}
 TREE_ROOT="$ROOT/build/decomp-tree"
 
 if ! curl -s -m 2 "$API/check_connection" >/dev/null; then
@@ -31,6 +32,14 @@ fail_on_error() {
   fi
 }
 
+wait_or_time_out() {
+  if [ "$SECONDS" -ge "$TIMEOUT" ]; then
+    echo "The tree did not finish in $TIMEOUT s. See $TREE_ROOT/STATUS.md." >&2
+    exit 1
+  fi
+  sleep "$POLL"
+}
+
 created=$(post "/decompile_tree_create?program=default.xbe" \
   "$(jq -cn --arg root "$TREE_ROOT" '{root: $root}')")
 fail_on_error "$created" "decompile_tree_create"
@@ -39,7 +48,9 @@ tree=$(jq -r '.tree_id' <<<"$created")
 # The server keeps a tree that was swept before up to date. When it adopts one, it
 # queues a reconcile that decompiles again only the functions that changed, and its
 # reply says in_sync false until that ends. A new sweep would decompile every
-# function again, so the script waits for the reconcile instead.
+# function again, so the script waits for the reconcile instead. A reconcile or a
+# rename that changed functions leaves STATUS.md at "state: spliced", and the agents
+# use only a tree at "state: clean", so the script sweeps such a tree again.
 if [ "$(jq -r '.phase' <<<"$created")" = "complete" ]; then
   while :; do
     status=$(curl -s "$API/decompile_tree_status?tree=$tree")
@@ -51,10 +62,13 @@ if [ "$(jq -r '.phase' <<<"$created")" = "complete" ]; then
     fi
     [ "$(jq -r '.in_sync' <<<"$status")" = "true" ] && break
     echo "Waiting for the server to update the functions that changed."
-    sleep "$POLL"
+    wait_or_time_out
   done
-  echo "The tree in $TREE_ROOT is already up to date."
-  exit 0
+  if [ "$(jq -r '.spliced_since_sweep // 0' <<<"$status")" = "0" ]; then
+    echo "The tree in $TREE_ROOT is already up to date."
+    exit 0
+  fi
+  echo "The server changed functions in the tree since its sweep. Sweeping it again."
 fi
 
 started=$(post "/decompile_tree_run" \
@@ -77,5 +91,5 @@ while :; do
       exit 1
       ;;
   esac
-  sleep "$POLL"
+  wait_or_time_out
 done

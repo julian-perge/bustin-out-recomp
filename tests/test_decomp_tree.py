@@ -17,15 +17,24 @@ def closed_url() -> str:
     return f"http://127.0.0.1:{port}"
 
 
-def run(url: str) -> subprocess.CompletedProcess:
-    env = {**os.environ, "GHIDRA_MCP_URL": url, "DECOMP_TREE_POLL_SECONDS": "0"}
+def run(url: str, timeout_seconds: str = "60") -> subprocess.CompletedProcess:
+    env = {
+        **os.environ,
+        "GHIDRA_MCP_URL": url,
+        "DECOMP_TREE_POLL_SECONDS": "0",
+        "DECOMP_TREE_TIMEOUT_SECONDS": timeout_seconds,
+    }
     return subprocess.run(
         [str(SCRIPT)], env=env, capture_output=True, text=True, timeout=60
     )
 
 
 def fake_server(
-    create: dict, run_reply: dict, phases: list[str], in_sync: list[bool] | None = None
+    create: dict,
+    run_reply: dict,
+    phases: list[str],
+    in_sync: list[bool] | None = None,
+    spliced: int = 0,
 ):
     """Serve the three tree endpoints and record each request as (path, body)."""
     in_sync = in_sync or [True]
@@ -53,6 +62,7 @@ def fake_server(
                         "functions_total": 10,
                         "functions_done": 10 if phase == "complete" else 4,
                         "functions_failed": 0,
+                        "spliced_since_sweep": spliced,
                     }
                 )
             else:
@@ -181,3 +191,49 @@ def test_a_tree_that_turns_stale_while_the_script_waits_exits_1():
     assert result.returncode == 1
     assert "became stale" in result.stderr
     assert not [r for r in requests if r[0].startswith("/decompile_tree_run")]
+
+
+def test_a_run_error_exits_1_with_the_message():
+    server, requests = fake_server(
+        {"tree_id": "tree_1", "phase": "idle"},
+        {"error": "the program is closed"},
+        ["idle"],
+    )
+    try:
+        result = run(f"http://127.0.0.1:{server.server_port}")
+    finally:
+        server.shutdown()
+    assert result.returncode == 1
+    assert "decompile_tree_run: the program is closed" in result.stderr
+    assert not [r for r in requests if r[0].startswith("/decompile_tree_status")]
+
+
+def test_a_tree_with_spliced_changes_is_swept_again():
+    # The agents use only a tree whose STATUS.md says "state: clean", and the server
+    # writes "state: spliced" once it has spliced a change in since the sweep.
+    server, requests = fake_server(
+        {"tree_id": "tree_1", "phase": "complete", "in_sync": True},
+        {"tree_id": "tree_1", "phase": "queued"},
+        ["complete", "decompiling", "complete"],
+        spliced=3,
+    )
+    try:
+        result = run(f"http://127.0.0.1:{server.server_port}")
+    finally:
+        server.shutdown()
+    assert result.returncode == 0, result.stderr
+    assert ("/decompile_tree_run", {"tree": "tree_1", "action": "start"}) in requests
+    assert "Sweeping it again" in result.stdout
+    assert "The tree is in" in result.stdout
+
+
+def test_a_sweep_that_does_not_end_in_time_exits_1():
+    server, _ = fake_server(
+        {"tree_id": "tree_1", "phase": "idle"}, {"phase": "queued"}, ["idle"]
+    )
+    try:
+        result = run(f"http://127.0.0.1:{server.server_port}", timeout_seconds="0")
+    finally:
+        server.shutdown()
+    assert result.returncode == 1
+    assert "did not finish in 0 s" in result.stderr
