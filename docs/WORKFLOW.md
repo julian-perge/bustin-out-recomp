@@ -130,7 +130,7 @@ Read-only tools, as named in ghidra-mcp 7.0.0. Confirm a name with `check_tools`
 
 1. `uv run pytest -q`.
 2. `uv run python -m bodecomp.ledger`, then `uv run python -m bodecomp.findings check`.
-3. Replace the Active block of `docs/STATUS.md`. Add or update FINDINGS entries from the agents' reports.
+3. Replace the Active block of `docs/STATUS.md`, with an Evidence line that gives the command output or the Ghidra reference that shows the state of the batch. Add or update FINDINGS entries from the agents' reports.
 
 At the end of a plan, also set every unfinished `active` finding back to `open`. Record a decision as an ADR when it is settled (ADR-0014).
 

@@ -11,7 +11,7 @@ A byte-matching decompilation of the Xbox release: C++ that VC71 compiles back t
 ## Where things live
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to find, claim and send work. [CODING_STANDARDS.md](CODING_STANDARDS.md): the rules `S1` to `S4` that every change follows.
-- `docs/STATUS.md`: milestones and the one Active block (branch, running processes, owners, blockers, backlog, next action).
+- `docs/STATUS.md`: milestones and the one Active block (branch, running processes, owners, evidence, blockers, next action). Tasks and the backlog are GitHub issues (ADR-0019).
 - `docs/FINDINGS.md`: facts, one entry each with a status. `docs/adr/`: decisions about method.
 - Reader docs about the tooling: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (design and data flow), [docs/CODE_MAP.md](docs/CODE_MAP.md) (question to file) and [docs/SUBSYSTEMS.md](docs/SUBSYSTEMS.md) (one section per tool subsystem).
 - `docs/WORKFLOW.md`: the ghidra-mcp server, rebuild, delink, query recipes, end-of-batch steps, the GameCube watch.
@@ -49,7 +49,7 @@ Before each commit, run `uv run pytest -q && uv run ruff check . && uv run pytho
 
 1. `uv run pytest -q`
 2. `uv run python -m bodecomp.ledger` and `uv run python -m bodecomp.findings check`
-3. Replace the Active block of `docs/STATUS.md`; add or update FINDINGS entries.
+3. Replace the Active block of `docs/STATUS.md`. Its Evidence line gives the command output or the Ghidra reference that shows the state of the batch. Add or update FINDINGS entries.
 
 At the end of a plan, also set unfinished `active` findings back to `open`. Record a decision as an ADR when it is settled (ADR-0014).
 
