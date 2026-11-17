@@ -115,10 +115,25 @@ A function matches when the built bytes equal the unit's bytes outside relocatio
 
 A batch is 20 functions from `match candidates 20 --min-size 17`; smaller functions are left to `bodecomp.trivial`. After each merge the lead adds a row to the batch table in `docs/m4-results.md`.
 
-1. The lead picks the functions with `match candidates`, creates a worktree and gives them to one `matcher`.
+1. The lead picks the functions with `match candidates`, creates a worktree with the recipe below and gives them to one `matcher`.
 2. The matcher writes the sources and runs `bodecomp.match` until each function is `matched`, or parked after five honest attempts.
 3. A `reviewer` reruns `bodecomp.match` in the worktree and reads the sources.
 4. The lead merges, then runs the full gate: `bodecomp.match --check` with every claimed function `matched`, `pytest`, `ruff check`, and after recording any real names, `sync check` with 0 differences, `names check` with 0 problems, `ledger --check` and `findings check`.
+
+### A matcher's worktree
+
+`bodecomp.match` reads files that git ignores: the units in `build/target`, the strings in `build/strings.tsv`, the xbe in `orig`, and the compiler in `tools/wibo` and `tools/xdk`. A new git worktree has none of them (F-0068). Create the worktree next to the main checkout and link these five paths from the main checkout. Run the commands in the main checkout, with the issue number and the branch of the task:
+
+    wt=../bustin-out-recomp-<issue>
+    git worktree add "$wt" -b <branch>
+    mkdir -p "$wt/build"
+    ln -s "$PWD/build/target" "$wt/build/target"
+    ln -s "$PWD/build/strings.tsv" "$wt/build/strings.tsv"
+    ln -s "$PWD/orig" "$wt/orig"
+    ln -s "$PWD/tools/wibo" "$wt/tools/wibo"
+    ln -s "$PWD/tools/xdk" "$wt/tools/xdk"
+
+Then `uv run python -m bodecomp.match --check` passes in the worktree. The first `uv run` there creates the worktree's own `.venv`. The worktree writes its objects to its own `build/match`. The units come from the main checkout, so do not delink in the main checkout while a matcher works. `git worktree remove "$wt"` deletes the links and keeps the files they point to.
 
 ## Trivial functions
 
