@@ -22,12 +22,12 @@ Purpose: put the game's executable and the compiler where the other tools expect
 
 Purpose: keep the Ghidra project a copy of the text files in git, so that it can be thrown away and rebuilt.
 
-- Files: `bodecomp/symbols.py`, `bodecomp/sync.py`, `bodecomp/ghidra_api.py`, `tools/rebuild-ghidra.sh`, `tools/ghidra-mcp-headless.sh`, `tools/env.sh`
+- Files: `bodecomp/symbols.py`, `bodecomp/sync.py`, `bodecomp/ghidra_api.py`, `tools/rebuild-ghidra.sh`, `tools/ghidra-mcp-headless.sh`, `tools/env.sh`, `tools/decomp-tree.sh`
 - Input: `orig/default.xbe` and `config/symbols.txt` (address, kind, size, name, tier and evidence for every name).
 - Output: the Ghidra project in `ghidra/` (not in git), `config/symbols.txt` after an export, and `ghidra/.sync-stamp` after a `sync check` with 0 differences.
-- Commands: `tools/ghidra-mcp-headless.sh` starts the ghidra-mcp server on port 8089. `uv run python -m bodecomp.sync export|apply|check` copies names from Ghidra to the file, from the file to Ghidra, or compares both ways. `uv run python -m bodecomp.sync freshness` reads only files and prints one line that compares `ghidra/.sync-stamp` with `config/symbols.txt`. `tools/rebuild-ghidra.sh` imports the XBE again with the server stopped, then creates every function start that `config/symbols.txt` lists.
+- Commands: `tools/ghidra-mcp-headless.sh` starts the ghidra-mcp server on port 8089. `uv run python -m bodecomp.sync export|apply|check` copies names from Ghidra to the file, from the file to Ghidra, or compares both ways. `uv run python -m bodecomp.sync freshness` reads only files and prints one line that compares `ghidra/.sync-stamp` with `config/symbols.txt`. `tools/rebuild-ghidra.sh` imports the XBE again with the server stopped, then creates every function start that `config/symbols.txt` lists. `tools/decomp-tree.sh` writes Ghidra's decompiled C of every function to `build/decomp-tree` through the running server.
 - How: `tools/env.sh` sets `GHIDRA_HOME` for every script that runs Ghidra (`tools/delink.sh`, `tools/create-functions.sh` and `tools/export-strings.sh` too). `symbols.py` reads and writes `config/symbols.txt`; most other subsystems use it. `ghidra_api.py` sends HTTP requests to the server for `sync.py`.
-- Tests: `tests/test_symbols.py`, `tests/test_sync.py`, `tests/test_env_sh.py`.
+- Tests: `tests/test_symbols.py`, `tests/test_sync.py`, `tests/test_env_sh.py`, `tests/test_decomp_tree.py`.
 - Decisions and findings: ADR-0002 (text is the source of truth), ADR-0003 (ghidra-mcp first, one writer), F-0010, F-0020.
 
 ## Delink and re-link

@@ -28,6 +28,15 @@ How to run the tools without rediscovering them. The method is in `docs/METHODOL
 - `apply_data_type` clears the range unless `clear_existing` is false (F-0011).
 - After a ghidra-mcp update, refresh the read-only tool list: `uv run python -m bodecomp.agent_tools`.
 
+## The decompile tree
+
+`build/decomp-tree` holds Ghidra's decompiled C of every function as files, so a question across many functions is one `rg` call and not one `force_decompile` call per function. One `force_decompile` call takes 0.25 to 0.33 s, because the server opens a new decompiler for each call. The sweep keeps one decompiler open and wrote all 21,194 functions in 671 s (issue #87).
+
+- The lead runs `tools/decomp-tree.sh` with the server up: once per machine, again after each `tools/rebuild-ghidra.sh`, and again after a batch of renames. It creates or adopts the tree. A new tree, or one whose last sweep did not finish, gets a full sweep (about 11 minutes). For a tree that was swept before, the server first decompiles again only the functions that changed. The script waits until the tree matches the program, and exits 1 after 30 minutes (`DECOMP_TREE_TIMEOUT_SECONDS` overrides it).
+- While the server runs, a rename or comment made through ghidra-mcp updates the tree by itself, and `STATUS.md` then says `state: spliced`. The agents use only a tree at `state: clean`, so the script sweeps a spliced tree again. A bulk change, such as `reanalyze` or a Ghidra script, marks the tree `stale` instead (`build/decomp-tree/AGENTS.md`, written by the server). Run the script again after one.
+- Search it with the path named, `rg <pattern> build/decomp-tree`: `build/` is git-ignored, so `rg` from the repo root without the path skips it. `index/by-address.tsv` gives the file of each function. `STATUS.md` gives the state; `state: clean` means the tree matches the program.
+- A hit in the tree is an index, not evidence. Before a report or finding states a fact, confirm it with a ghidra-mcp tool, and the Checked line names that tool (ADR-0003). When the tree is missing or `STATUS.md` does not say `state: clean`, use ghidra-mcp only.
+
 ## Rebuilding the Ghidra project from text
 
 1. With the server running, `uv run python -m bodecomp.sync export`, then commit `config/symbols.txt`.

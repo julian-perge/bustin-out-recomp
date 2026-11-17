@@ -121,6 +121,7 @@ Rules for the session:
 
 - Do not run `bodecomp.sync apply` or `export`, `tools/rebuild-ghidra.sh` or `tools/delink.sh`, and do not send HTTP requests to port 8089. Ghidra writes go through the namer (F-0025).
 - Pass `program="default.xbe"` to every ghidra-mcp tool call; the headless server opens no program (F-0024).
+- For a question across many functions, such as which functions use a constant, a string or a field offset, search `build/decomp-tree` first, with the path named: `rg <pattern> build/decomp-tree`. `build/` is git-ignored, so `rg` from the repo root without the path skips the tree. It holds Ghidra's decompiled C of every function, and its `index/by-address.tsv` gives the file of each address. A hit is only an index: confirm it with a ghidra-mcp tool before your report states it. When the tree is missing or its `STATUS.md` does not say `state: clean`, use ghidra-mcp only (docs/WORKFLOW.md, "The decompile tree").
 
 Check:
 

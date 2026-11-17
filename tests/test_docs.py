@@ -292,3 +292,23 @@ def test_reviewer_fails_a_park_without_the_donor_form():
     assert "GameCube donor" in line
     assert "score of the donor's form" in line
     assert "gives no score for the donor's form is a fail" in line
+
+
+def test_agents_search_the_decompile_tree_and_confirm_in_ghidra():
+    for name in ("matcher", "reviewer", "namer"):
+        text = read(f".claude/agents/{name}.md")
+        lines = [line for line in text.splitlines() if "`build/decomp-tree`" in line]
+        assert len(lines) == 1, name
+        line = lines[0]
+        assert "`rg <pattern> build/decomp-tree`" in line, name
+        assert "git-ignored" in line, name
+        assert "`state: clean`" in line, name
+        assert "confirm it with a ghidra-mcp tool" in line, name
+
+
+def test_workflow_says_when_the_lead_runs_the_tree_script():
+    text = section(read("docs/WORKFLOW.md"), "The decompile tree")
+    assert "`tools/decomp-tree.sh`" in text
+    assert "`tools/rebuild-ghidra.sh`" in text
+    assert "`index/by-address.tsv`" in text
+    assert "`state: clean`" in text

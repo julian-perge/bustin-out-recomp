@@ -13,6 +13,7 @@ Before anything else:
 2. Read the "String names" section of docs/WORKFLOW.md. Its rules for a name are binding.
 3. For every address in your batch, search docs/FINDINGS.md and docs/adr/ with `rg -n`. Cite a confirmed, fixed or rejected entry instead of redoing it.
 4. Read only the lines you need, with `rg -n` or `sed -n`. Every line you read stays in your context and is paid for again on each later call, so do not print whole documents or whole files.
+5. For a question across many functions, such as which functions use a constant, a string or a field offset, search `build/decomp-tree` first, with the path named: `rg <pattern> build/decomp-tree`. `build/` is git-ignored, so `rg` from the repo root without the path skips the tree. It holds Ghidra's decompiled C of every function, and its `index/by-address.tsv` gives the file of each address. A hit is only an index: confirm it with a ghidra-mcp tool before your report states it. When the tree is missing or its `STATUS.md` does not say `state: clean`, use ghidra-mcp only (docs/WORKFLOW.md, "The decompile tree").
 
 Your task names one batch: `uv run python -m bodecomp.names batch N --size 25` lists its functions and their strings.
 
