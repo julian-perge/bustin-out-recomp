@@ -23,7 +23,7 @@ A byte-matching decompilation of the Xbox release: C++ that VC71 compiles back t
 - Text files in git are the source of truth; Ghidra is rebuilt from them (ADR-0002).
 - A causal claim ("X caused Y") says whether it rests on evidence or is a guess.
 - Repo documents are ASCII only.
-- Toolchain problems that cost time go into `~/.config/papercuts.md`.
+- A toolchain problem that costs time becomes a GitHub issue labeled `needs-triage`, with the symptom, the cause (evidence or guess) and the fix.
 - Git: local commits and merges to local `main` are allowed in this repo. Pushing or adding a remote needs the user's OK.
 
 ## Ownership
