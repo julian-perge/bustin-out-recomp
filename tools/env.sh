@@ -46,3 +46,9 @@ EOF
   unset _env_prefixes _env_prefix _env_version _env_candidate _env_tried
 fi
 export GHIDRA_HOME
+
+# The maximum Java heap of every headless Ghidra run. support/analyzeHeadless
+# reads this variable and uses 2G without it, and tools/ghidra-mcp-headless.sh
+# passes it to java as -Xmx. A value that is already set wins.
+GHIDRA_HEADLESS_MAXMEM=${GHIDRA_HEADLESS_MAXMEM:-16G}
+export GHIDRA_HEADLESS_MAXMEM

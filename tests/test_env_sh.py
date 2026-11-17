@@ -77,6 +77,40 @@ def test_missing_ghidra_exits_1_and_names_the_tried_paths(tmp_path):
     assert result.stdout == ""
 
 
+def source_env_heap(tmp_path: Path, **env) -> subprocess.CompletedProcess:
+    base = {"PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "GHIDRA_HOME": "/g"}
+    base.update(env)
+    return subprocess.run(
+        [
+            "bash",
+            "-c",
+            f'set -euo pipefail; source "{ENV_SH}"; '
+            'bash -c \'echo "$GHIDRA_HEADLESS_MAXMEM"\'',
+        ],
+        capture_output=True,
+        text=True,
+        env=base,
+    )
+
+
+def test_env_sh_exports_a_16g_headless_heap(tmp_path):
+    result = source_env_heap(tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "16G"
+
+
+def test_an_existing_headless_heap_wins(tmp_path):
+    result = source_env_heap(tmp_path, GHIDRA_HEADLESS_MAXMEM="6G")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "6G"
+
+
+def test_the_server_script_takes_its_heap_from_env_sh():
+    script = (ROOT / "tools" / "ghidra-mcp-headless.sh").read_text()
+    assert "-Xmx$GHIDRA_HEADLESS_MAXMEM" in script
+    assert "-Xmx4g" not in script
+
+
 def test_no_tool_script_names_the_homebrew_path_except_env_sh():
     tracked = subprocess.run(
         ["git", "-C", str(ROOT), "ls-files", "tools"],

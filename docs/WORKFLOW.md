@@ -23,7 +23,7 @@ How to run the tools without rediscovering them. The method is in `docs/METHODOL
     }
   }
   ```
-- The scripts that run Ghidra source `tools/env.sh`, which sets `GHIDRA_HOME`. An existing `GHIDRA_HOME` wins. Otherwise it uses the newest `Cellar/ghidra/<version>/libexec` under `brew --prefix` (`$HOMEBREW_PREFIX`, then `/opt/homebrew`, when `brew` is not on `PATH`). When none holds `support/analyzeHeadless`, it prints the paths it tried and exits 1.
+- The scripts that run Ghidra source `tools/env.sh`, which sets `GHIDRA_HOME`. An existing `GHIDRA_HOME` wins. Otherwise it uses the newest `Cellar/ghidra/<version>/libexec` under `brew --prefix` (`$HOMEBREW_PREFIX`, then `/opt/homebrew`, when `brew` is not on `PATH`). When none holds `support/analyzeHeadless`, it prints the paths it tried and exits 1. It also exports `GHIDRA_HEADLESS_MAXMEM`, the maximum Java heap of `analyzeHeadless` and of the ghidra-mcp server, as 16G unless it is already set.
 - The headless server opens no program. Pass `program="default.xbe"` to every ghidra-mcp tool call (F-0024).
 - `apply_data_type` clears the range unless `clear_existing` is false (F-0011).
 - After a ghidra-mcp update, refresh the read-only tool list: `uv run python -m bodecomp.agent_tools`.
