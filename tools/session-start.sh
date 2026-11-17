@@ -12,7 +12,7 @@ URL=${GHIDRA_MCP_URL:-http://127.0.0.1:8089}
 # macOS has no timeout command, so the limit applies only where the command exists.
 LIMIT=()
 if command -v timeout >/dev/null 2>&1; then
-  LIMIT=(timeout 10)
+  LIMIT=(timeout 4)
 fi
 
 # GitHub and agent-skills answers are kept for 60 seconds, because the hook with five
