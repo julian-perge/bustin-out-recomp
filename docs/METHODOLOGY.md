@@ -32,7 +32,7 @@ All inputs stay out of git (see `.gitignore`).
   - library stamps all 1.0.5558: XAPILIB, XBOXKRNL, LIBCPMT, LIBCMT, D3D8, XGRAPHC, DSOUND, XMV
   - `.text` at 0x00011000, size 0x232CE4 (2.2 MB). There are separate D3D, XGRPH, DSOUND, XMV and XPP sections
 - `xbox-sdks/2003-06 - 5558.2 - SDK.7z`: contains `XDKSetup5558.2.exe`, which holds:
-  - `XDK/xbox/bin/vc71/`: CL.Exe, C1.Dll, C1xx.Dll, C2.Dll, Link.Exe and the rest. The version strings read 13.10.3077 for the compiler and 7.10.3077 for the linker. They were read with a raw string scan, so M0 re-checks them.
+  - `XDK/xbox/bin/vc71/`: CL.Exe, C1.Dll, C1xx.Dll, C2.Dll, Link.Exe and the rest. The version strings read 13.10.3077 for the compiler and 7.10.3077 for the linker. They were read with a raw string scan. M0 confirmed the compiler's version, 13.10.3077 (`docs/m0-results.md`).
   - `XDK/xbox/lib/`: d3d8, dsound, xapilib, xgraphics, libc and the other SDK libraries
 - `sims_bustin_out_gamecube.7z` in the repo root: the user's GameCube copy, not examined yet.
 
