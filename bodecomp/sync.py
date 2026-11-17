@@ -179,8 +179,8 @@ def stamp_hashes(path: Path) -> dict[str, str]:
 
     The function hash covers only the address and kind columns of each
     `function` line, in file order, each pair followed by a newline. A rename
-    or a size change does not change it, because a rebuild cannot fix either
-    (ADR-0022). It equals
+    or a size change does not change it: `sync apply` fixes a rename, and a
+    rebuild cannot fix a size (ADR-0022). It equals
     `awk -F'\\t' '$2 == "function" {print $1 "\\t" $2}' FILE | sha256sum`.
     """
     data = path.read_bytes()

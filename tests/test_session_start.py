@@ -331,7 +331,7 @@ def test_an_unparsable_stamp_counts_as_no_stamp(tmp_path, monkeypatch, text):
     assert line == f"ghidra project: no sync stamp, {REBUILD}"
 
 
-def test_changed_function_lines_ask_for_a_rebuild(tmp_path, monkeypatch):
+def test_an_added_function_asks_for_a_rebuild(tmp_path, monkeypatch):
     root = stamped_project(tmp_path, monkeypatch)
     write_symbols(
         root / "config/symbols.txt",
