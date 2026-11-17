@@ -134,6 +134,7 @@ S2 Evidence for claims
 
 - Each claimed match: run `uv run python -m bodecomp.match` in the worktree and confirm the function is `matched` and `--check` passes. Read every constant, string and vtable a match depends on from Ghidra instead of inferring it from the match result.
 - Each claim in the matcher's report that the compiler treats one source form differently from another: compile the other form yourself and compare the bytes before accepting it (F-0077).
+- Each parked function whose class has a GameCube donor: the matcher's report gives the score of the donor's form of the function. A park whose report gives no score for the donor's form is a fail (F-0093, F-0101).
 - Check each proposed finding through ghidra-mcp, in particular whether an address it calls a missing function is referenced as a function or is a jump target inside another one (F-0078).
 - `uv run pytest -q` passes.
 

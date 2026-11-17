@@ -272,3 +272,23 @@ def test_matcher_defines_a_callee_in_place_of_throw():
     assert "`throw()`" in line
     assert "define the callee in the same source" in line
     assert "Give the callee its address comment" in line
+
+
+def test_matcher_compiles_the_donor_form_before_a_park():
+    line = matcher_bullet("F-0093, F-0101")
+    assert "GameCube donor" in line
+    assert "compile the donor's form of the function" in line
+    assert "before you park it" in line
+    assert "score of that form in your report" in line
+    assert "Your task names the donor's source file of each class" in line
+
+
+def test_reviewer_fails_a_park_without_the_donor_form():
+    text = read(".claude/agents/reviewer.md")
+    s2 = text.split("S2 Evidence for claims", 1)[1].split("S3 Evidence for names", 1)[0]
+    lines = [line for line in s2.splitlines() if "(F-0093, F-0101)" in line]
+    assert len(lines) == 1
+    line = lines[0]
+    assert "GameCube donor" in line
+    assert "score of the donor's form" in line
+    assert "gives no score for the donor's form is a fail" in line
