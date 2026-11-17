@@ -30,7 +30,7 @@ def source_env(tmp_path: Path, **env) -> subprocess.CompletedProcess:
     base = {"PATH": f"{tmp_path / 'bin'}:/usr/bin:/bin", "HOME": str(tmp_path)}
     base.update(env)
     return subprocess.run(
-        ["bash", "-c", f'source "{ENV_SH}"; echo "$GHIDRA_HOME"'],
+        ["bash", "-c", f'set -euo pipefail; source "{ENV_SH}"; echo "$GHIDRA_HOME"'],
         capture_output=True,
         text=True,
         env=base,
@@ -102,7 +102,8 @@ def test_env_sh_finds_ghidra_on_this_machine():
         [
             "bash",
             "-c",
-            f'source "{ENV_SH}"; test -x "$GHIDRA_HOME/support/analyzeHeadless"',
+            f'set -euo pipefail; source "{ENV_SH}"; '
+            'test -x "$GHIDRA_HOME/support/analyzeHeadless"',
         ],
         capture_output=True,
         text=True,
