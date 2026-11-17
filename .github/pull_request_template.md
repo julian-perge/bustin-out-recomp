@@ -32,7 +32,8 @@ uv run pytest -q && uv run ruff check . && uv run python -m bodecomp.findings ch
 
 ## Proposed findings
 
-<!-- Only the lead session edits docs/FINDINGS.md. Propose each new or changed finding in this form, or write "None".
+<!-- Write each new or changed finding in docs/FINDINGS.md in this pull request, and list it here in this form, or write "None". The review checks the entries (ADR-0020).
+When two pull requests use the same F-number, the pull request that merges second renumbers its entries before the merge.
 
 ## F-NEW <title>
 - Status: open | confirmed | rejected

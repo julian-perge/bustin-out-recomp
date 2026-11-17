@@ -109,11 +109,14 @@ def commit_known(sha: str, repo: Path, pre_public: list[str]) -> bool:
 
 def check(findings: list[Finding], commit_exists: Callable[[str], bool]) -> list[str]:
     errors = []
-    seen: set[str] = set()
+    seen: dict[str, Finding] = {}
     for f in findings:
-        if f.id in seen:
-            errors.append(f"line {f.line}: {f.id} is used twice")
-        seen.add(f.id)
+        first = seen.setdefault(f.id, f)
+        if first is not f:
+            errors.append(
+                f"line {f.line}: {f.id} '{f.title}' repeats "
+                f"{first.id} '{first.title}' at line {first.line}"
+            )
         if f.commit and not commit_exists(f.commit):
             errors.append(
                 f"line {f.line}: {f.id} names commit {f.commit}, which does not exist"
