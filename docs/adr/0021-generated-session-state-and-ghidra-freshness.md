@@ -3,6 +3,7 @@
 - **Status:** Accepted (user decision, 2026-11-17, spec/56-workflow-both-machines.md)
 - **Date:** 2026-11-17
 - **Amends:** [ADR-0003](0003-ghidra-mcp-first-one-writer.md), [ADR-0007](0007-agent-workflow.md), [ADR-0019](0019-issues-are-the-only-task-queue.md)
+- **Amended by:** [ADR-0022](0022-function-hash-covers-function-starts.md) (points 8 and 9: the functions hash covers only the function starts)
 
 ## Context
 
