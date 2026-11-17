@@ -13,6 +13,7 @@ A byte-matching decompilation of the Xbox release: C++ that VC71 compiles back t
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to find, claim and send work. [CODING_STANDARDS.md](CODING_STANDARDS.md): the rules `S1` to `S4` that every change follows.
 - `docs/STATUS.md`: milestones and the one Active block (branch, running processes, owners, blockers, backlog, next action).
 - `docs/FINDINGS.md`: facts, one entry each with a status. `docs/adr/`: decisions about method.
+- Reader docs about the tooling: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (design and data flow), [docs/CODE_MAP.md](docs/CODE_MAP.md) (question to file) and [docs/SUBSYSTEMS.md](docs/SUBSYSTEMS.md) (one section per tool subsystem).
 - `docs/WORKFLOW.md`: the ghidra-mcp server, rebuild, delink, query recipes, end-of-batch steps, the GameCube watch.
 - `docs/LEDGER.md`: generated per-function status. `docs/m0-results.md`, `docs/m1-results.md`, `docs/m2-results.md`, `docs/m3-results.md`: milestone evidence.
 - `config/symbols.txt`: every name, with tier and evidence (ADR-0002).

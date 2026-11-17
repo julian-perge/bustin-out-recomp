@@ -9,6 +9,8 @@ LINK_CHECKED_DOCS = [
     "docs/METHODOLOGY.md",
     "CONTRIBUTING.md",
     "docs/SUBSYSTEMS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/CODE_MAP.md",
 ]
 
 MARKDOWN_LINK = re.compile(r"\]\(([^)\s]+)\)")

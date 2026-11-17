@@ -2,7 +2,7 @@
 
 Checked against the repo at commit f1114ba on 2026-11-17.
 
-This file describes the repo's own tools: the Python package `bodecomp/`, the scripts in `tools/` and the agent setup in `.claude/`. It does not describe the game's engine. [WORKFLOW.md](WORKFLOW.md) gives the step-by-step procedures.
+This file describes the repo's own tools: the Python package `bodecomp/`, the scripts in `tools/` and the agent setup in `.claude/`. It does not describe the game's engine. [ARCHITECTURE.md](ARCHITECTURE.md) shows how the subsystems connect, and [WORKFLOW.md](WORKFLOW.md) gives the step-by-step procedures.
 
 Each section has a `Files` line that lists the modules and scripts it owns. Each module in `bodecomp/` and each script in `tools/` is on exactly one `Files` line, and `tests/test_docs.py` fails when one is missing or repeated. Commands run from the repo root.
 
