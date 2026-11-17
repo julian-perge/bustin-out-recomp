@@ -1,6 +1,6 @@
 # ADR-0007: The agent workflow
 
-- **Status:** Accepted (user decision); partly superseded by ADR-0014 and ADR-0015
+- **Status:** Accepted (user decision); partly superseded by ADR-0014 and ADR-0015; the hook and the Active block are amended by [ADR-0021](0021-generated-session-state-and-ghidra-freshness.md)
 - **Date:** 2026-10-11
 
 ## Context

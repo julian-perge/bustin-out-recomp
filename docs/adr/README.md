@@ -6,11 +6,11 @@ Each decision about method or architecture gets a numbered file with Status, Dat
 |---|---|---|
 | [0001](0001-byte-matching-with-a-gamecube-donor.md) | A byte-matching decomp with the GameCube decomp as donor; the recomp is a phase 2 harness | Accepted |
 | [0002](0002-text-is-the-source-of-truth.md) | Text files are the source of truth; Ghidra is rebuilt from them | Accepted |
-| [0003](0003-ghidra-mcp-first-one-writer.md) | ghidra-mcp first for analysis, one writer at a time | Accepted |
+| [0003](0003-ghidra-mcp-first-one-writer.md) | ghidra-mcp first for analysis, one writer at a time | Accepted; the writer is named by a label in ADR-0021 |
 | [0004](0004-toolchain-and-default-flags.md) | XDK 5558.2 VC71 under wibo, default `/O2 /G7 /arch:SSE` | Accepted; the default flags are amended by ADR-0017 |
 | [0005](0005-sdk-names-from-stamped-libraries.md) | SDK names come from byte matches against the libraries the XBE stamps | Accepted |
 | [0006](0006-per-unit-objects-and-the-relink-gate.md) | Per-unit target objects, and the re-link check as a gate | Accepted |
-| [0007](0007-agent-workflow.md) | The agent workflow: entry point, status, findings, decisions, role agents | Accepted; partly superseded by ADR-0014 and ADR-0015 |
+| [0007](0007-agent-workflow.md) | The agent workflow: entry point, status, findings, decisions, role agents | Accepted; partly superseded by ADR-0014 and ADR-0015; the hook and the Active block are amended by ADR-0021 |
 | [0008](0008-string-tier-names.md) | String-tier names are recorded in text first, with string addresses as evidence | Accepted |
 | [0009](0009-names-come-from-matching-after-m2b.md) | After M2b, functions are named when they are matched, not in separate naming passes | Accepted |
 | [0010](0010-subagents-run-on-sonnet-in-small-batches.md) | Namer and reviewer agents run on Sonnet, in batches of 25 functions | Accepted |
@@ -22,5 +22,6 @@ Each decision about method or architecture gets a numbered file with Status, Dat
 | [0016](0016-one-fresh-public-commit.md) | The public repo starts from one fresh commit, and `config/pre-public-commits.txt` lists the hashes of the private history | Accepted |
 | [0017](0017-default-flags-gain-gx.md) | The default flags gain `/GX`, so a function with an exception-handling frame can match | Accepted |
 | [0018](0018-milestones-renumbered-and-on-github.md) | M5 is "Larger functions", the harness and the layout become M6 and M7, and GitHub milestones group the issues | Accepted |
-| [0019](0019-issues-are-the-only-task-queue.md) | GitHub issues are the only task queue, `docs/STATUS.md` holds no backlog, and the Active block has an Evidence line | Accepted |
+| [0019](0019-issues-are-the-only-task-queue.md) | GitHub issues are the only task queue, `docs/STATUS.md` holds no backlog, and the Active block has an Evidence line | Accepted; the Active block is removed by ADR-0021 |
 | [0020](0020-agent-push-and-merge-commit.md) | An agent pushes a feature branch without asking, every pull request merges with a merge commit, and a stage session writes its own findings | Accepted |
+| [0021](0021-generated-session-state-and-ghidra-freshness.md) | The session hook generates the state of the work, the `ghidra-writer` label names the Ghidra writer, and a sync stamp shows whether a Ghidra project is level | Accepted |

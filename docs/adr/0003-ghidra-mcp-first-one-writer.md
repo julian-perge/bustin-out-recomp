@@ -1,6 +1,6 @@
 # ADR-0003: ghidra-mcp first for analysis, one writer at a time
 
-- **Status:** Accepted (user decision)
+- **Status:** Accepted (user decision). The writer is named by a label, see [ADR-0021](0021-generated-session-state-and-ghidra-freshness.md)
 - **Date:** 2026-10-10
 
 ## Context
