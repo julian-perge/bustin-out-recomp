@@ -21,3 +21,4 @@ Each decision about method or architecture gets a numbered file with Status, Dat
 | [0015](0015-agents-md-is-the-entry-file.md) | `AGENTS.md` is the agent entry file, and `CLAUDE.md` imports it | Accepted |
 | [0016](0016-one-fresh-public-commit.md) | The public repo starts from one fresh commit, and `config/pre-public-commits.txt` lists the hashes of the private history | Accepted |
 | [0017](0017-default-flags-gain-gx.md) | The default flags gain `/GX`, so a function with an exception-handling frame can match | Accepted |
+| [0018](0018-milestones-renumbered-and-on-github.md) | M5 is "Larger functions", the harness and the layout become M6 and M7, and GitHub milestones group the issues | Accepted |

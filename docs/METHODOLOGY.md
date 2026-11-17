@@ -195,8 +195,9 @@ Then move to a halo-1-style csplit layout and start matching `.data` and `.rdata
 | M2 Naming | A first naming pass over the engine and game modules, with the share of named game functions reported per tier. After M2b, functions are named when they are matched (ADR-0009) |
 | M3 First batch | One matcher batch merged through the full gate, with lessons folded back into the agent prompts |
 | M4 Steady state | Batches run routinely and `ninja progress` is tracked. No percentage target is set until M3 shows the pace |
-| M5 Harness | The rebuilt XBE is byte-identical, and the harness reaches the main menu under Wine on macOS |
-| M6 Layout | Source-file splits and data matching are under way |
+| M5 Larger functions | A byte shape among functions larger than the gen_trivial set is found, and one matcher batch of that shape merges through the full gate, with its cost per matched function recorded |
+| M6 Harness | The rebuilt XBE is byte-identical, and the harness reaches the main menu under Wine on macOS |
+| M7 Layout | Source-file splits and data matching are under way |
 
 ## Risks
 

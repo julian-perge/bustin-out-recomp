@@ -69,6 +69,18 @@ def test_each_issue_form_sets_the_needs_triage_label():
     assert unlabeled == []
 
 
+def milestone_rows(name):
+    text = read(name)
+    table = text.split("## Milestones", 1)[1].split("\n## ", 1)[0]
+    return re.findall(r"^\| (M\d+ [^|]*?) \|", table, re.MULTILINE)
+
+
+def test_status_and_methodology_list_the_same_milestones():
+    status = milestone_rows("docs/STATUS.md")
+    assert status != []
+    assert status == milestone_rows("docs/METHODOLOGY.md")
+
+
 def is_tracked_path(path, tracked):
     if path in tracked:
         return True
