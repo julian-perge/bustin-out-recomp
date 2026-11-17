@@ -280,6 +280,7 @@ def test_matcher_compiles_the_donor_form_before_a_park():
     assert "compile the donor's form of the function" in line
     assert "before you park it" in line
     assert "score of that form in your report" in line
+    assert "Your task names the donor's source file of each class" in line
 
 
 def test_reviewer_fails_a_park_without_the_donor_form():
@@ -290,4 +291,4 @@ def test_reviewer_fails_a_park_without_the_donor_form():
     line = lines[0]
     assert "GameCube donor" in line
     assert "score of the donor's form" in line
-    assert "is a fail" in line
+    assert "gives no score for the donor's form is a fail" in line

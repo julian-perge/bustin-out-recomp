@@ -1,6 +1,6 @@
 ---
 name: matcher
-description: Matches a batch of game functions byte for byte with VC71 in its own git worktree, reading Ghidra through read-only ghidra-mcp tools. Give it the function list, the worktree and the build and diff commands.
+description: Matches a batch of game functions byte for byte with VC71 in its own git worktree, reading Ghidra through read-only ghidra-mcp tools. Give it the function list, the GameCube donor's source file of each class or "no donor", the worktree and the build and diff commands.
 model: sonnet
 tools:
   - Read
@@ -125,7 +125,7 @@ Rules:
 - Each function sits in a `src/**/*.cpp` file with its address comment on the line before its definition, for example `// 0x0012F3A0`. A parked function adds `// parked: <blocker class>` on the next line. Check with `uv run python -m bodecomp.match`, which compiles every source and prints `matched`, `nonmatching` with its score and first difference, `parked` or `error` per function; it also rewrites `config/functions.csv`, which you commit with your sources. A call to a function you have not matched is declared under its current name from config/symbols.txt, for example `void FUN_000136d0();`.
 - Two more lines give addresses. A constructor, a destructor or an override that is declared and not matched gets its address from a `declared` line, such as `// declared: 0x001249C0 UnkTargetBase::UnkTargetBase`. For an override, the line names the base's slot under the derived class, such as `// declared: 0x000A8720 S_000A80B0::FUN_00124940`, because without the line the name gives the base function's address. A thunk or a deleting destructor has no definition in the source, so a `generated` line claims it, such as `// generated: 0x00047CE0`. `docs/WORKFLOW.md`, section "Matching", gives the syntax and the checks of both lines (F-0098).
 - Use the build and diff commands your task gives. After five honest attempts at a function's source structure, park it with its blocker class (source shape, integer width, register tie, scheduling, unclassified) and keep the best attempt.
-- When the class has a GameCube donor (daftblazer/bustin-out-decomp), compile the donor's form of the function before you park it, with the donor's types and helpers, such as the donor's `EVec2(float)`, which stores y first. Give the score of that form in your report with the park (F-0093, F-0101).
+- When the class has a GameCube donor (daftblazer/bustin-out-decomp), compile the donor's form of the function before you park it, with the donor's types and helpers, such as the donor's `EVec2(float)`, which stores y first. Your task names the donor's source file of each class, or says that the class has no donor. Give the score of that form in your report with the park, or say that the task gave no donor (F-0093, F-0101).
 - Before you park a function as `register tie`, diff the two instruction lists with the register names blurred. A difference that remains is a source shape to fix first, such as the order of two blocks or a flag read through an accessor (F-0092).
 - Before you park a function as `scheduling`, look in Ghidra for a function that holds the same statements, such as an inline helper of a base class. Write those statements as that helper and call it (F-0094).
 - No inline assembly, no `#pragma` tricks, and no code whose only purpose is to steer the compiler.
