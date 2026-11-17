@@ -175,16 +175,19 @@ def apply_names(
 
 
 def stamp_hashes(path: Path) -> dict[str, str]:
-    """Return the SHA-256 of the whole file and of its `function` lines.
+    """Return the SHA-256 of the whole file and of its function starts.
 
-    The function hash covers those lines in file order, each with its line end,
-    so it equals `awk -F'\\t' '$2 == "function"' FILE | sha256sum`.
+    The function hash covers only the address and kind columns of each
+    `function` line, in file order, each pair followed by a newline. A rename
+    or a size change does not change it, because a rebuild cannot fix either
+    (ADR-0022). It equals
+    `awk -F'\\t' '$2 == "function" {print $1 "\\t" $2}' FILE | sha256sum`.
     """
     data = path.read_bytes()
     functions = b"".join(
-        line
-        for line in data.splitlines(keepends=True)
-        if line.split(b"\t")[1:2] == [b"function"]
+        fields[0] + b"\t" + fields[1] + b"\n"
+        for fields in (line.split(b"\t") for line in data.splitlines())
+        if fields[1:2] == [b"function"]
     )
     return {
         "symbols": hashlib.sha256(data).hexdigest(),
@@ -203,9 +206,10 @@ def write_stamp(symbols: Path, stamp: Path) -> None:
 def freshness(symbols: Path, stamp: Path) -> str:
     """Return the hook line that compares the stamp with `symbols`.
 
-    A change in the `function` lines asks for a rebuild, because no test shows
-    that `sync apply` creates functions, and `tools/rebuild-ghidra.sh` does
-    (spec/56-workflow-both-machines.md, assumption 3).
+    An added or removed function start asks for a rebuild, because no test
+    shows that `sync apply` creates functions, and `tools/rebuild-ghidra.sh`
+    does (spec/56-workflow-both-machines.md, assumption 3). Any other change,
+    such as a function rename, asks for `sync apply` only (ADR-0022).
     """
     rebuild = "run tools/rebuild-ghidra.sh, then sync apply and sync check"
     if not symbols.exists():
@@ -218,7 +222,7 @@ def freshness(symbols: Path, stamp: Path) -> str:
         return f"ghidra project: no sync stamp, {rebuild}"
     current = stamp_hashes(symbols)
     if stamped.get("functions") != current["functions"]:
-        return f"ghidra project: function lines changed, {rebuild}"
+        return f"ghidra project: function starts changed, {rebuild}"
     if stamped.get("symbols") != current["symbols"]:
         return "ghidra project: names changed, run sync apply and sync check"
     return f"ghidra project: level with {SYMBOLS}"

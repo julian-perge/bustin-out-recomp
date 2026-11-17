@@ -1,4 +1,5 @@
 import hashlib
+import subprocess
 from dataclasses import replace
 
 import pytest
@@ -270,15 +271,38 @@ def test_check_with_no_difference_writes_the_stamp(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as stop:
         sync.main(["check"])
     assert stop.value.code == 0
-    lines = symbols.read_bytes().splitlines(keepends=True)
-    function_lines = b"".join(
-        line for line in lines if line.split(b"\t")[1] == b"function"
-    )
-    assert function_lines.count(b"\n") == 2
+    function_starts = b"0x00011000\tfunction\n0x00011100\tfunction\n"
     assert stamp.read_text() == (
         f"symbols {hashlib.sha256(symbols.read_bytes()).hexdigest()}\n"
-        f"functions {hashlib.sha256(function_lines).hexdigest()}\n"
+        f"functions {hashlib.sha256(function_starts).hexdigest()}\n"
     )
+
+
+def test_the_functions_hash_equals_the_awk_command_in_the_docstring(tmp_path):
+    symbols = tmp_path / "symbols.txt"
+    write_symbols(symbols, STAMP_ENTRIES)
+    awk = subprocess.run(
+        ["awk", "-F\t", '$2 == "function" {print $1 "\\t" $2}', str(symbols)],
+        capture_output=True,
+        check=True,
+    )
+    assert awk.stdout.count(b"\n") == 2
+    expected = hashlib.sha256(awk.stdout).hexdigest()
+    assert sync.stamp_hashes(symbols)["functions"] == expected
+
+
+def test_the_functions_hash_ignores_name_size_tier_and_evidence(tmp_path):
+    before = tmp_path / "before.txt"
+    after = tmp_path / "after.txt"
+    write_symbols(before, STAMP_ENTRIES)
+    changed = replace(
+        STAMP_ENTRIES[1], name="OtherName", size=24, tier="string", evidence="x"
+    )
+    write_symbols(after, [STAMP_ENTRIES[0], changed, *STAMP_ENTRIES[2:]])
+    old = sync.stamp_hashes(before)
+    new = sync.stamp_hashes(after)
+    assert old["functions"] == new["functions"]
+    assert old["symbols"] != new["symbols"]
 
 
 def test_check_with_a_difference_leaves_the_stamp_alone(tmp_path, monkeypatch):

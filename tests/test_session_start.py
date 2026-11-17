@@ -338,7 +338,38 @@ def test_changed_function_lines_ask_for_a_rebuild(tmp_path, monkeypatch):
         [*SYMBOLS, Entry(0x11100, "function", 8, "FUN_00011100", "auto", "")],
     )
     line = freshness_line(root, tmp_path)
-    assert line == f"ghidra project: function lines changed, {REBUILD}"
+    assert line == f"ghidra project: function starts changed, {REBUILD}"
+
+
+def test_a_removed_function_asks_for_a_rebuild(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    write_symbols(root / "config/symbols.txt", [SYMBOLS[0], SYMBOLS[2]])
+    line = freshness_line(root, tmp_path)
+    assert line == f"ghidra project: function starts changed, {REBUILD}"
+
+
+def test_a_renamed_function_asks_for_sync_apply(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    write_symbols(
+        root / "config/symbols.txt",
+        [SYMBOLS[0], replace(SYMBOLS[1], name="OtherName"), SYMBOLS[2]],
+    )
+    line = freshness_line(root, tmp_path)
+    assert line == (
+        "ghidra project: names changed, run sync apply and sync check"
+    )
+
+
+def test_a_function_size_change_asks_for_sync_apply(tmp_path, monkeypatch):
+    root = stamped_project(tmp_path, monkeypatch)
+    write_symbols(
+        root / "config/symbols.txt",
+        [SYMBOLS[0], replace(SYMBOLS[1], size=24), SYMBOLS[2]],
+    )
+    line = freshness_line(root, tmp_path)
+    assert line == (
+        "ghidra project: names changed, run sync apply and sync check"
+    )
 
 
 def test_other_changed_lines_ask_for_sync_apply(tmp_path, monkeypatch):
