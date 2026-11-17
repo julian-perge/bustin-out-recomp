@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-GHIDRA_HOME=${GHIDRA_HOME:-/opt/homebrew/Cellar/ghidra/12.2/libexec}
+. "$ROOT/tools/env.sh"
 
 if curl -s -m 2 http://127.0.0.1:8089/check_connection >/dev/null; then
   echo "Stop the ghidra-mcp server first: it holds the Ghidra project lock." >&2

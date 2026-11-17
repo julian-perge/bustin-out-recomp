@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-GHIDRA_HOME=${GHIDRA_HOME:-/opt/homebrew/Cellar/ghidra/12.2/libexec}
+. "$ROOT/tools/env.sh"
 MCP_DIR=${GHIDRA_MCP_DIR:-$HOME/git/bethington/ghidra-mcp}
 # Ghidra keeps user extensions under $XDG_CONFIG_HOME when that is set, which is
 # where the XBE loader and the delinker are installed on this machine.

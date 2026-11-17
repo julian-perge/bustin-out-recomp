@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-GHIDRA_HOME=${GHIDRA_HOME:-/opt/homebrew/Cellar/ghidra/12.2/libexec}
+. "$ROOT/tools/env.sh"
 URL=${GHIDRA_MCP_URL:-http://127.0.0.1:8089}
 LIST=${1:-$ROOT/build/target/candidates.txt}
 # "starts" makes every listed address that is not a function start at the end a reject.

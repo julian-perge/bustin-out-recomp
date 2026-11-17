@@ -9,7 +9,21 @@ How to run the tools without rediscovering them. The method is in `docs/METHODOL
 - Writers: only the lead session or one `namer` agent. A task that changes the Ghidra project has the `ghidra-writer` label, and its assignee is the lock. At most one open task with the label is assigned. The hook prints it, and `namer` and `reviewer` query it with `gh issue list --label ghidra-writer --state open --assignee '*'` (ADR-0003, ADR-0021).
 - A Ghidra-writer task may change only what a tracked text file records. It commits `config/symbols.txt` after `sync export`. Any other change in Ghidra is scratch and is lost on a rebuild (ADR-0002, ADR-0021). The task does not count that change as done.
 - `matcher` and `reviewer` have only read-only ghidra-mcp tools, and their instructions forbid the Bash routes that still write (F-0025).
-- `.mcp.json` starts the bridge with `--no-lazy`, so every tool group is registered when it connects. A group loaded later with `load_tool_group` never reaches a subagent that is already running (F-0023). Use `search_tools` with keywords to find a tool.
+- `.mcp.json` is per machine. It is untracked and git-ignored, because it names the path to `uv`, which differs between machines. Create it on each machine with the content below, and put the output of `command -v uv` in `command`. The bridge starts with `--no-lazy`, so every tool group is registered when it connects. A group loaded later with `load_tool_group` never reaches a subagent that is already running (F-0023). Use `search_tools` with keywords to find a tool.
+
+  ```json
+  {
+    "mcpServers": {
+      "ghidra-mcp": {
+        "type": "stdio",
+        "command": "<output of command -v uv>",
+        "args": ["run", "--directory", "${HOME}/git/bethington/ghidra-mcp", "bridge-mcp-ghidra", "--transport", "stdio", "--no-lazy"],
+        "env": {"GHIDRA_MCP_URL": "http://127.0.0.1:8089"}
+      }
+    }
+  }
+  ```
+- The scripts that run Ghidra source `tools/env.sh`, which sets `GHIDRA_HOME`. An existing `GHIDRA_HOME` wins. Otherwise it uses the newest `Cellar/ghidra/<version>/libexec` under `brew --prefix` (`$HOMEBREW_PREFIX`, then `/opt/homebrew`, when `brew` is not on `PATH`). When none holds `support/analyzeHeadless`, it prints the paths it tried and exits 1.
 - The headless server opens no program. Pass `program="default.xbe"` to every ghidra-mcp tool call (F-0024).
 - `apply_data_type` clears the range unless `clear_existing` is false (F-0011).
 - After a ghidra-mcp update, refresh the read-only tool list: `uv run python -m bodecomp.agent_tools`.
