@@ -25,7 +25,7 @@ Purpose: keep the Ghidra project a copy of the text files in git, so that it can
 - Files: `bodecomp/symbols.py`, `bodecomp/sync.py`, `bodecomp/ghidra_api.py`, `tools/rebuild-ghidra.sh`, `tools/ghidra-mcp-headless.sh`, `tools/env.sh`
 - Input: `orig/default.xbe` and `config/symbols.txt` (address, kind, size, name, tier and evidence for every name).
 - Output: the Ghidra project in `ghidra/` (not in git), `config/symbols.txt` after an export, and `ghidra/.sync-stamp` after a `sync check` with 0 differences.
-- Commands: `tools/ghidra-mcp-headless.sh` starts the ghidra-mcp server on port 8089. `uv run python -m bodecomp.sync export|apply|check` copies names from Ghidra to the file, from the file to Ghidra, or compares both ways. `tools/rebuild-ghidra.sh` imports the XBE again with the server stopped, then creates every function start that `config/symbols.txt` lists.
+- Commands: `tools/ghidra-mcp-headless.sh` starts the ghidra-mcp server on port 8089. `uv run python -m bodecomp.sync export|apply|check` copies names from Ghidra to the file, from the file to Ghidra, or compares both ways. `uv run python -m bodecomp.sync freshness` reads only files and prints one line that compares `ghidra/.sync-stamp` with `config/symbols.txt`. `tools/rebuild-ghidra.sh` imports the XBE again with the server stopped, then creates every function start that `config/symbols.txt` lists.
 - How: `tools/env.sh` sets `GHIDRA_HOME` for every script that runs Ghidra (`tools/delink.sh`, `tools/create-functions.sh` and `tools/export-strings.sh` too). `symbols.py` reads and writes `config/symbols.txt`; most other subsystems use it. `ghidra_api.py` sends HTTP requests to the server for `sync.py`.
 - Tests: `tests/test_symbols.py`, `tests/test_sync.py`, `tests/test_env_sh.py`.
 - Decisions and findings: ADR-0002 (text is the source of truth), ADR-0003 (ghidra-mcp first, one writer), F-0010, F-0020.
@@ -117,9 +117,9 @@ Purpose: report progress, and keep `docs/FINDINGS.md` in its form.
 Purpose: give each Claude session the current state, and give the agents only the tools they need.
 
 - Files: `bodecomp/agent_tools.py`, `tools/session-start.sh`
-- Input: git, GitHub (`gh` and `agent-skills`), `docs/FINDINGS.md`, and the ghidra-mcp schema from the running server or from a snapshot.
+- Input: git, GitHub (`gh` and `agent-skills`), `docs/FINDINGS.md`, `config/symbols.txt` and `ghidra/.sync-stamp`, and the ghidra-mcp schema from the running server or from a snapshot.
 - Output: the text the hook prints; the `ghidra-read` tool block in `.claude/agents/matcher.md` and `.claude/agents/reviewer.md`, and the allowed tools in `.claude/settings.json`.
 - Commands: `tools/session-start.sh` (run by the SessionStart hook in `.claude/settings.json`), `uv run python -m bodecomp.agent_tools`.
-- How: the hook prints the generated state of the work (branch, running processes, Ghidra writer, pull requests, assigned issues, next command, last merged pull request), whether ghidra-mcp is up, and the open and active findings, in 40 lines or fewer (ADR-0021). The agents are `namer` (the only one that writes to Ghidra), `matcher` and `reviewer`, in `.claude/agents/`.
+- How: the hook prints the generated state of the work (branch, running processes, Ghidra project freshness, Ghidra writer, pull requests, assigned issues, next command, last merged pull request), whether ghidra-mcp is up, and the open and active findings, in 40 lines or fewer (ADR-0021). The agents are `namer` (the only one that writes to Ghidra), `matcher` and `reviewer`, in `.claude/agents/`.
 - Tests: `tests/test_session_start.py`, `tests/test_agent_tools.py`.
 - Decisions and findings: ADR-0003, ADR-0007, ADR-0010, ADR-0015, F-0023, F-0025.

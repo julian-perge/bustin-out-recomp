@@ -85,6 +85,10 @@ else
   echo "ghidra-mcp: down (start it with tools/ghidra-mcp-headless.sh)"
 fi
 
+# The stamp line reads files only, so it does not need the server (ADR-0021).
+(cd "$TOOLS" && uv run --quiet python -m bodecomp.sync freshness --root "$ROOT") \
+  || echo "ghidra project: unavailable (sync freshness failed)"
+
 if command -v pgrep >/dev/null 2>&1; then
   running=""
   for entry in "ghidra-mcp server:GhidraMCPHeadlessServer" "analyzeHeadless:analyzeHeadless" "delink:tools/delink.sh"; do

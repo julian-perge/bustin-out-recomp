@@ -200,6 +200,30 @@ def write_stamp(symbols: Path, stamp: Path) -> None:
         print(f"could not write {stamp}: {error}")
 
 
+def freshness(symbols: Path, stamp: Path) -> str:
+    """Return the hook line that compares the stamp with `symbols`.
+
+    A change in the `function` lines asks for a rebuild, because no test shows
+    that `sync apply` creates functions, and `tools/rebuild-ghidra.sh` does
+    (spec/56-workflow-both-machines.md, assumption 3).
+    """
+    rebuild = "run tools/rebuild-ghidra.sh, then sync apply and sync check"
+    if not symbols.exists():
+        return f"ghidra project: {SYMBOLS} is missing"
+    try:
+        stamped = dict(line.split(" ", 1) for line in stamp.read_text().splitlines())
+    except (OSError, ValueError):
+        stamped = {}
+    if stamped.keys() != {"symbols", "functions"}:
+        return f"ghidra project: no sync stamp, {rebuild}"
+    current = stamp_hashes(symbols)
+    if stamped.get("functions") != current["functions"]:
+        return f"ghidra project: function lines changed, {rebuild}"
+    if stamped.get("symbols") != current["symbols"]:
+        return "ghidra project: names changed, run sync apply and sync check"
+    return f"ghidra project: level with {SYMBOLS}"
+
+
 def _apply(changes: list[tuple[int, str, str]]) -> None:
     from bodecomp import ghidra_api
 
@@ -211,13 +235,23 @@ def _apply(changes: list[tuple[int, str, str]]) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Sync config/symbols.txt with Ghidra")
-    parser.add_argument("command", choices=("export", "apply", "check"))
+    parser.add_argument("command", choices=("export", "apply", "check", "freshness"))
     parser.add_argument(
         "--accept-ghidra-names",
         action="store_true",
         help="record functions named only in Ghidra as SDK names",
     )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=Path(),
+        help="freshness only: the checkout that holds config/ and ghidra/",
+    )
     args = parser.parse_args(argv)
+
+    if args.command == "freshness":
+        print(freshness(args.root / SYMBOLS, args.root / STAMP))
+        return
 
     if args.command == "apply":
         from bodecomp import ghidra_api

@@ -4,7 +4,7 @@ A byte-matching decompilation of the Xbox release: C++ that VC71 compiles back t
 
 ## Start here
 
-1. The SessionStart hook prints the generated state of the work (branch, running processes, Ghidra writer, pull requests, assigned issues, next command, last merged pull request), whether ghidra-mcp is up, and the open and active findings. If it is missing, run `tools/session-start.sh`.
+1. The SessionStart hook prints the generated state of the work (branch, running processes, Ghidra project freshness, Ghidra writer, pull requests, assigned issues, next command, last merged pull request), whether ghidra-mcp is up, and the open and active findings. If it is missing, run `tools/session-start.sh`.
 2. Before investigating any address, function or tool behavior, search for it: `rg -n '<address or keyword>' docs/FINDINGS.md docs/adr`. A confirmed, fixed or rejected entry is cited and not redone. Reopen one only with new evidence, and write that evidence into the entry.
 3. Read the section of `docs/METHODOLOGY.md` for the task, and `docs/WORKFLOW.md` for tool procedures.
 
