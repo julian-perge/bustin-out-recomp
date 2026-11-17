@@ -54,7 +54,7 @@ public:
     virtual void FUN_00017C90(int sender, int message);
     virtual void FUN_00017CB0(int a1, int a2);
     virtual int FUN_00017CC0(int a1);
-    virtual void FUN_00017CD0(int a1, int a2);
+    virtual void FUN_00017CD0(int a1, bool a2);
     virtual void FUN_00017CE0(int a1);
     virtual void FUN_00017CF0(int a1, int a2, int a3);
     virtual EVec3* FUN_00017D00();
