@@ -19,7 +19,7 @@ for jar in "$EXTENSIONS"/*/lib/*.jar; do
   classpath="$classpath:$jar"
 done
 
-exec java -Xmx4g -XX:+UseG1GC \
+exec java -Xmx$GHIDRA_HEADLESS_MAXMEM -XX:+UseG1GC \
   -Dghidra.home="$GHIDRA_HOME" -Dapplication.name=GhidraMCP \
   -classpath "$classpath" com.xebyte.headless.GhidraMCPHeadlessServer \
   --bind 127.0.0.1 --port 8089 --project "$ROOT/ghidra/BustinOut.gpr"
