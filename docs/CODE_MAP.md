@@ -16,7 +16,7 @@ Where to start reading in the repo's tooling. [ARCHITECTURE.md](ARCHITECTURE.md)
 | Which compiler and flags build the sources? | `bodecomp/cl.py` | `bodecomp/match.py`, [ADR-0004](adr/0004-toolchain-and-default-flags.md), [ADR-0017](adr/0017-default-flags-gain-gx.md) |
 | How is the Ghidra project rebuilt? | `tools/rebuild-ghidra.sh` | `bodecomp/sync.py`, `tools/create-functions.sh`, [WORKFLOW.md](WORKFLOW.md) "Rebuilding the Ghidra project from text" |
 | Why is code at an address in no function? | `bodecomp/gaps.py` | `tools/create-functions.sh`, `tools/ghidra_scripts/CreateFunctions.java`, [WORKFLOW.md](WORKFLOW.md) "Function discovery" |
-| What does a session see when it starts? | `tools/session-start.sh` | `.claude/settings.json`, `docs/STATUS.md`, `bodecomp/findings.py` |
+| What does a session see when it starts? | `tools/session-start.sh` | `.claude/settings.json`, `bodecomp/findings.py`, [ADR-0021](adr/0021-generated-session-state-and-ghidra-freshness.md) |
 | Which tools may an agent call? | `.claude/agents/` | `bodecomp/agent_tools.py`, `.claude/settings.json` |
 | How is progress counted? | `bodecomp/ledger.py` | `docs/LEDGER.md`, `bodecomp/readme.py` |
 | Is a fact about the binary already known? | [FINDINGS.md](FINDINGS.md) | `bodecomp/findings.py`, [adr/](adr/) |
