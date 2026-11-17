@@ -50,6 +50,25 @@ def test_pull_request_template_has_a_section_per_rule():
     assert missing == []
 
 
+def test_each_issue_form_sets_the_needs_triage_label():
+    forms = [
+        form
+        for form in sorted((ROOT / ".github" / "ISSUE_TEMPLATE").glob("*.yml"))
+        if form.name != "config.yml"
+    ]
+    assert forms != []
+    unlabeled = [
+        form.name
+        for form in forms
+        if not re.search(
+            r"^labels:\s*(\[[^\]]*\bneeds-triage\b[^\]]*\]|\n\s+- needs-triage\s*$)",
+            form.read_text(encoding="utf-8"),
+            re.MULTILINE,
+        )
+    ]
+    assert unlabeled == []
+
+
 def is_tracked_path(path, tracked):
     if path in tracked:
         return True

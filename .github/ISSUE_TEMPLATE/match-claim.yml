@@ -1,0 +1,25 @@
+name: Match claim
+description: Claim functions or a class that you plan to match, so that two people do not match the same code. The maintainer assigns the claimant at triage.
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: targets
+    attributes:
+      label: Addresses or class
+      description: The function addresses in 0x%08X form, for example 0x0001BC70, or the class name.
+    validations:
+      required: true
+  - type: input
+    id: source-file
+    attributes:
+      label: Planned source file
+      description: The file under src/ that will hold the matches.
+    validations:
+      required: true
+  - type: input
+    id: donor
+    attributes:
+      label: GameCube donor name
+      description: The name of the function or class in the GameCube decomp, when there is one.
+    validations:
+      required: false

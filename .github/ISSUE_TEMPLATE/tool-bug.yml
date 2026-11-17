@@ -1,0 +1,34 @@
+name: Tool bug
+description: A command in bodecomp/ or tools/ gives a wrong result or fails.
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command you ran.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The output of the command, or the part that shows the problem.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: What the command should give, and why you expect it.
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: The output of `git rev-parse --short HEAD`.
+    validations:
+      required: true
