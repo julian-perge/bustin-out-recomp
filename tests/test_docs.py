@@ -237,3 +237,38 @@ def test_workflow_says_other_ghidra_changes_are_scratch():
     text = read("docs/WORKFLOW.md")
     assert "is scratch" in text
     assert "ADR-0021" in text
+
+
+def matcher_bullet(finding):
+    text = read(".claude/agents/matcher.md")
+    lines = [line for line in text.splitlines() if f"({finding})" in line]
+    assert len(lines) == 1, finding
+    return lines[0]
+
+
+def test_matcher_names_the_declared_and_generated_lines():
+    line = matcher_bullet("F-0098")
+    assert "`// declared: 0x" in line
+    assert "S_000A80B0::FUN_00124940" in line
+    assert "`// generated: 0x" in line
+    assert '`docs/WORKFLOW.md`, section "Matching"' in line
+
+
+def test_matcher_blurs_register_names_before_a_register_tie_park():
+    line = matcher_bullet("F-0092")
+    assert "`register tie`" in line
+    assert "register names blurred" in line
+
+
+def test_matcher_looks_for_the_same_statements_before_a_scheduling_park():
+    line = matcher_bullet("F-0094")
+    assert "`scheduling`" in line
+    assert "inline helper of a base class" in line
+    assert "look in Ghidra" in line
+
+
+def test_matcher_defines_a_callee_in_place_of_throw():
+    line = matcher_bullet("F-0095")
+    assert "`throw()`" in line
+    assert "define the callee in the same source" in line
+    assert "Give the callee its address comment" in line
