@@ -255,6 +255,7 @@ STAMP_ENTRIES = [
     Entry(0x10000, "data", 0, "XBE_FILE_HEADER_00010000", "sdk", "xbe-loader"),
     Entry(0x11000, "function", 20, "CreateThread", "sdk", "xbe-loader"),
     Entry(0x11100, "function", 8, "FUN_00011100", "auto", ""),
+    Entry(0x12000, "data", 4, "g_count", "string", "read by function 0x11000"),
 ]
 
 
@@ -300,16 +301,24 @@ def test_check_with_a_difference_leaves_the_stamp_alone(tmp_path, monkeypatch):
     assert stamp.read_text() == "symbols old\nfunctions old\n"
 
 
-def test_check_with_a_difference_does_not_write_a_new_stamp(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "ghidra",
+    [
+        STAMP_ENTRIES[:2],
+        [*STAMP_ENTRIES, Entry(0x11200, "function", 4, "FUN_00011200", "auto", "")],
+    ],
+    ids=["missing in Ghidra", "missing in symbols.txt"],
+)
+def test_check_with_a_difference_does_not_write_a_new_stamp(
+    tmp_path, monkeypatch, ghidra
+):
     symbols = tmp_path / "symbols.txt"
     write_symbols(symbols, STAMP_ENTRIES)
     stamp = tmp_path / "ghidra" / ".sync-stamp"
     stamp.parent.mkdir()
     monkeypatch.setattr(sync, "SYMBOLS", symbols)
     monkeypatch.setattr(sync, "STAMP", stamp)
-    monkeypatch.setattr(
-        sync, "_ghidra_entries", lambda: (STAMP_ENTRIES[:2], STAMP_ENTRIES[:2])
-    )
+    monkeypatch.setattr(sync, "_ghidra_entries", lambda: (ghidra, ghidra))
     with pytest.raises(SystemExit) as stop:
         sync.main(["check"])
     assert stop.value.code == 1
