@@ -24,8 +24,11 @@ def run(url: str) -> subprocess.CompletedProcess:
     )
 
 
-def fake_server(create: dict, run_reply: dict, phases: list[str]):
+def fake_server(
+    create: dict, run_reply: dict, phases: list[str], in_sync: list[bool] | None = None
+):
     """Serve the three tree endpoints and record each request as (path, body)."""
+    in_sync = in_sync or [True]
     requests = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -42,9 +45,11 @@ def fake_server(create: dict, run_reply: dict, phases: list[str]):
                 self.reply({"status": "ok"})
             elif self.path.startswith("/decompile_tree_status"):
                 phase = phases.pop(0) if len(phases) > 1 else phases[0]
+                synced = in_sync.pop(0) if len(in_sync) > 1 else in_sync[0]
                 self.reply(
                     {
                         "phase": phase,
+                        "in_sync": synced,
                         "functions_total": 10,
                         "functions_done": 10 if phase == "complete" else 4,
                         "functions_failed": 0,
@@ -140,3 +145,39 @@ def test_a_tree_that_is_already_in_sync_is_not_swept_again():
     assert result.returncode == 0, result.stderr
     assert not [r for r in requests if r[0].startswith("/decompile_tree_run")]
     assert "already up to date" in result.stdout
+
+
+def test_a_swept_tree_waits_for_the_reconcile_and_is_not_swept_again():
+    # The real server queues a reconcile while it adopts a tree, so the create reply
+    # says in_sync false even for a tree that matches the program.
+    server, requests = fake_server(
+        {"tree_id": "tree_1", "phase": "complete", "in_sync": False, "adopted": True},
+        {"phase": "queued"},
+        ["complete"],
+        [False, False, True],
+    )
+    try:
+        result = run(f"http://127.0.0.1:{server.server_port}")
+    finally:
+        server.shutdown()
+    assert result.returncode == 0, result.stderr
+    assert not [r for r in requests if r[0].startswith("/decompile_tree_run")]
+    statuses = [r for r in requests if r[0].startswith("/decompile_tree_status")]
+    assert len(statuses) == 3
+    assert "already up to date" in result.stdout
+
+
+def test_a_tree_that_turns_stale_while_the_script_waits_exits_1():
+    server, requests = fake_server(
+        {"tree_id": "tree_1", "phase": "complete", "in_sync": False},
+        {"phase": "queued"},
+        ["complete", "stale"],
+        [False],
+    )
+    try:
+        result = run(f"http://127.0.0.1:{server.server_port}")
+    finally:
+        server.shutdown()
+    assert result.returncode == 1
+    assert "became stale" in result.stderr
+    assert not [r for r in requests if r[0].startswith("/decompile_tree_run")]

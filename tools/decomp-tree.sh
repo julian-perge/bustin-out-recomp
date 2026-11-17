@@ -4,9 +4,9 @@ set -euo pipefail
 # Fills build/decomp-tree with Ghidra's decompiled C of every function, through the
 # running ghidra-mcp server. The server keeps one decompiler open for the sweep, so
 # it is much faster than one force_decompile call per function. A tree that is
-# already there is adopted, and swept again only when it does not match the
-# program. The script waits until the sweep ends and exits 0 only when its phase
-# is complete.
+# already there is adopted. It is swept again only when it was never swept or its
+# last sweep did not finish. The script waits until the tree matches the program,
+# and exits 0 only then.
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 API=${GHIDRA_MCP_URL:-http://127.0.0.1:8089}
@@ -36,9 +36,23 @@ created=$(post "/decompile_tree_create?program=default.xbe" \
 fail_on_error "$created" "decompile_tree_create"
 tree=$(jq -r '.tree_id' <<<"$created")
 
-# A sweep decompiles every function again, even when the adopted tree already
-# matches the program.
-if [ "$(jq -r '"\(.phase) \(.in_sync)"' <<<"$created")" = "complete true" ]; then
+# The server keeps a tree that was swept before up to date. When it adopts one, it
+# queues a reconcile that decompiles again only the functions that changed, and its
+# reply says in_sync false until that ends. A new sweep would decompile every
+# function again, so the script waits for the reconcile instead.
+if [ "$(jq -r '.phase' <<<"$created")" = "complete" ]; then
+  while :; do
+    status=$(curl -s "$API/decompile_tree_status?tree=$tree")
+    fail_on_error "$status" "decompile_tree_status"
+    phase=$(jq -r '.phase' <<<"$status")
+    if [ "$phase" != "complete" ]; then
+      echo "The tree became $phase while the server checked it. Run the script again." >&2
+      exit 1
+    fi
+    [ "$(jq -r '.in_sync' <<<"$status")" = "true" ] && break
+    echo "Waiting for the server to update the functions that changed."
+    sleep "$POLL"
+  done
   echo "The tree in $TREE_ROOT is already up to date."
   exit 0
 fi
