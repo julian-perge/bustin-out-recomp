@@ -323,9 +323,10 @@ def test_no_stamp_asks_for_a_rebuild(tmp_path, monkeypatch):
     assert line == f"ghidra project: no sync stamp, {REBUILD}"
 
 
-def test_an_unparsable_stamp_counts_as_no_stamp(tmp_path, monkeypatch):
+@pytest.mark.parametrize("text", ["garbage\n", "", "two words\n", "symbols abc\n"])
+def test_an_unparsable_stamp_counts_as_no_stamp(tmp_path, monkeypatch, text):
     root = stamped_project(tmp_path, monkeypatch)
-    (root / "ghidra/.sync-stamp").write_text("garbage\n")
+    (root / "ghidra/.sync-stamp").write_text(text)
     line = freshness_line(root, tmp_path)
     assert line == f"ghidra project: no sync stamp, {REBUILD}"
 

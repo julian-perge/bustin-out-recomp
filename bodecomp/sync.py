@@ -213,6 +213,8 @@ def freshness(symbols: Path, stamp: Path) -> str:
     try:
         stamped = dict(line.split(" ", 1) for line in stamp.read_text().splitlines())
     except (OSError, ValueError):
+        stamped = {}
+    if stamped.keys() != {"symbols", "functions"}:
         return f"ghidra project: no sync stamp, {rebuild}"
     current = stamp_hashes(symbols)
     if stamped.get("functions") != current["functions"]:
