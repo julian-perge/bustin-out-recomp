@@ -274,18 +274,12 @@ def test_matcher_defines_a_callee_in_place_of_throw():
     assert "Give the callee its address comment" in line
 
 
-def bullets_with(path, findings):
-    text = read(path)
-    return [line for line in text.splitlines() if f"({findings})" in line]
-
-
 def test_matcher_compiles_the_donor_form_before_a_park():
-    lines = bullets_with(".claude/agents/matcher.md", "F-0093, F-0101")
-    assert len(lines) == 1
-    line = lines[0]
+    line = matcher_bullet("F-0093, F-0101")
     assert "GameCube donor" in line
     assert "compile the donor's form of the function" in line
     assert "before you park it" in line
+    assert "score of that form in your report" in line
 
 
 def test_reviewer_fails_a_park_without_the_donor_form():
@@ -295,5 +289,5 @@ def test_reviewer_fails_a_park_without_the_donor_form():
     assert len(lines) == 1
     line = lines[0]
     assert "GameCube donor" in line
-    assert "donor's form" in line
+    assert "score of the donor's form" in line
     assert "is a fail" in line
