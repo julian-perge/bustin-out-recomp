@@ -812,8 +812,8 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 ## F-0117 0x000D9960 is parked as scheduling at 61.1%
 - Status: open
 - Addresses: 0x000D9960, 0x000D66A0, 0x000D66C0, 0x000D9AC0, 0x000D9AE0, 0x000DFAA0
-- Checked: the matcher's compiles in the worktree of night batch 3, ghidra-mcp search_instructions and disassemble_function by the matcher and the reviewer (2026-11-24)
-- Evidence: The function is `or byte [ecx+0x5b],0x10; mov [ecx+0x50],eax; or dword [ecx+8],2; ret 4`. VC71 puts `or [ecx+8],2` before the byte `or`. The matcher reports 10 forms: 9 give 61.1% (each statement order but one, a `char` flag byte, bit-fields, inline helpers with the +8 flag set last, a base-class helper, an out-of-line setter), and the order with the +8 flag first gives 44.4%. The reviewer did not compile them. A search for `or byte [reg+0x5b],0x10` finds setters with the same order: 0x000D66C0 (a float store), 0x000D9AC0 and 0x000D9AE0 (on an inner object) and 0x000DFAA0 (after a null test). 0x000D66A0 has the byte `or` and no `or [+8],2`. None of them is a shared helper.
+- Checked: the matcher's compiles in the worktree of night batch 3, ghidra-mcp search_instructions and disassemble_function by the matcher and the reviewer (2026-11-24); the matcher's and the reviewer's compiles of night batch 12 (2026-11-24)
+- Evidence: The function is `or byte [ecx+0x5b],0x10; mov [ecx+0x50],eax; or dword [ecx+8],2; ret 4`. VC71 puts `or [ecx+8],2` before the byte `or`. The matcher reports 10 forms: 9 give 61.1% (each statement order but one, a `char` flag byte, bit-fields, inline helpers with the +8 flag set last, a base-class helper, an out-of-line setter), and the order with the +8 flag first gives 44.4%. The reviewer did not compile them. A search for `or byte [reg+0x5b],0x10` finds setters with the same order: 0x000D66C0 (a float store), 0x000D9AC0 and 0x000D9AE0 (on an inner object) and 0x000DFAA0 (after a null test). 0x000D66A0 has the byte `or` and no `or [+8],2`. None of them is a shared helper. Night batch 12 parked 0x000D9AC0 and 0x000D9AE0 as scheduling at 71.4% for the same reason: every form VC71 builds puts `or dword [eax+8],2` before the store to +0x50, or reloads `[ecx+0x5c]`. The matcher tried five forms (statement order, a local pointer, `t->` three times, a byte member against bit-fields, inline setters), and the reviewer compiled five forms in a scratch copy with the same result. Neither function has an xref in Ghidra (get_xrefs_to, 2026-11-24).
 - Next: match one of the sibling setters to learn the shape that keeps the order.
 
 ## F-0118 0x0010A4D0 is parked as source shape at 94.4%, because only a volatile parameter matches
@@ -927,3 +927,10 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24); ghidra-mcp disassemble_function by the reviewer (2026-11-24)
 - Evidence: The original sign-extends the argument and tail-jumps through `jmp [eax+0x48]`. With slot 18 declared as `int FUN_s18(int)` and the method returning its result, the source matches at 100%. The matcher reports that with a `void` return VC71 puts the `movsx` before the `ecx` load; the reviewer did not compile that form.
 - Revisit when: a forwarder of this shape matches only with a `void` return.
+
+## F-0134 Two bit-field stores keep their order only inside an inline member function
+- Status: confirmed
+- Addresses: 0x00035A70
+- Checked: ghidra-mcp disassemble_function by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 12 and the reviewer's compiles in a scratch copy (2026-11-24)
+- Evidence: The original updates the dword at +4, then the dword at +0, each with `and 0xf8; or 8`. A bit-field struct with an inline member `set()`, called as `y.set(); x.set();`, matches at 100%. The direct form `y.a = 0; y.b = 1; x.a = 0; x.b = 1;` gives 23.8%: VC71 loads both dwords first, then stores `[ecx]` and `[ecx+4]`. The reviewer compiled the direct form on nested and on flat structs, with the same result.
+- Revisit when: a function of this shape matches only with the direct stores.
