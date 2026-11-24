@@ -908,25 +908,25 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Next: find out whether 0x00011BA0 is a real entry (look for a vtable or table that holds it), create the function as issue #94 did, then match both.
 
 ## F-0131 A pointer converted to its third virtual base matches 0x001B6550
-- Status: confirmed
+- Status: open
 - Addresses: 0x001B6550
 - Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24); ghidra-mcp disassemble_function by the reviewer (2026-11-24)
 - Evidence: The original loads the pointer at `this-0x70`, tests it for null, then adds `[[p]+0xc]` to it. A `D*` converted to `V3*`, with `struct D : virtual V1, virtual V2, virtual V3`, matches at 100%. The matcher reports that a raw-pointer form does not match; the reviewer did not compile that form.
-- Revisit when: a function of this shape does not match with the virtual-base conversion.
+- Next: a reviewer compiles the raw-pointer form and compares the bytes (F-0077); set the entry to confirmed if it does not match.
 
 ## F-0132 A constant-size zeroing of a member array matches 0x001E75C0 only through memset
-- Status: confirmed
+- Status: open
 - Addresses: 0x001E75C0
 - Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24)
 - Evidence: `memset(v, 0, sizeof(v))` on the member array at `this->v[0x50]`, with `extern "C" void* __cdecl memset(void*, int, unsigned int);` declared in the source, matches at 100%. The matcher reports that plain loops build 18 bytes and that `#include <string.h>` fails with C1034, because the build has no include path. The reviewer did not compile the other forms.
-- Revisit when: the build gets an include path for the CRT headers.
+- Next: a reviewer compiles the plain-loop forms and compares the bytes (F-0077); set the entry to confirmed if they do not match.
 
 ## F-0133 A virtual forwarder matches 0x001AEF90 only when it returns the callee's value
-- Status: confirmed
+- Status: open
 - Addresses: 0x001AEF90
 - Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24); ghidra-mcp disassemble_function by the reviewer (2026-11-24)
 - Evidence: The original sign-extends the argument and tail-jumps through `jmp [eax+0x48]`. With slot 18 declared as `int FUN_s18(int)` and the method returning its result, the source matches at 100%. The matcher reports that with a `void` return VC71 puts the `movsx` before the `ecx` load; the reviewer did not compile that form.
-- Revisit when: a forwarder of this shape matches only with a `void` return.
+- Next: a reviewer compiles the `void` return form and compares the bytes (F-0077); set the entry to confirmed if it does not match.
 
 ## F-0134 Two bit-field stores keep their order only inside an inline member function
 - Status: confirmed
