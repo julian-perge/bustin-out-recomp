@@ -5,6 +5,7 @@ struct S_0019B2A0
     S_0019B2A0* next;
 };
 
+// The original takes the list head in EAX, which no calling convention of VC71 gives (F-0121).
 // 0x0019B2A0
 // parked: unclassified
 // The original takes the list head in EAX and the key in ECX, which no VC71 calling convention gives.
