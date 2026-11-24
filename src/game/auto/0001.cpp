@@ -59,3 +59,26 @@ void S_00017C70::fn_00017C70(const int* p)
     a = p[0];
     b = p[1];
 }
+
+struct S_00018120Inner
+{
+    virtual void v0();
+    virtual void v1();
+    virtual void v2();
+};
+
+struct S_00018120
+{
+    char pad0[4];
+    S_00018120Inner* inner;
+    char pad8[4];
+    char flag;
+    void fn_00018120();
+};
+// 0x00018120
+void S_00018120::fn_00018120()
+{
+    if (!flag)
+        flag = 1;
+    inner->v2();
+}
