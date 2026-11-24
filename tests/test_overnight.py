@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import subprocess
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -53,6 +54,10 @@ def repo(tmp_path):
     git(root, "init", "-q", "-b", "main")
     git(root, "add", ".")
     git(root, "commit", "-q", "-m", "first", when=T0 - timedelta(days=2))
+    origin = tmp_path / "origin.git"
+    git(root, "clone", "-q", "--bare", str(root), str(origin))
+    git(root, "remote", "add", "origin", str(origin))
+    git(root, "fetch", "-q", "origin")
     return root
 
 
@@ -70,11 +75,12 @@ class Fakes:
     def __init__(self, root: Path):
         self.root = root
         self.calls: list[tuple[str, ...]] = []
-        self.answers: dict[tuple[str, ...], tuple[int, str]] = {}
+        self.answers: dict[tuple[str, ...], tuple[int, str, str]] = {}
         self.gh_issues = "[]"
         self.pr_url = "https://github.com/o/r/pull/1"
+        self.pr_head: str | None = None
 
-    def __call__(self, cmd) -> tuple[int, str]:
+    def __call__(self, cmd) -> tuple[int, str, str]:
         cmd = tuple(cmd)
         self.calls.append(cmd)
         if cmd in self.answers:
@@ -82,13 +88,14 @@ class Fakes:
         if cmd[0] == "git":
             return overnight.shell(self.root)(cmd)
         if cmd in (*GATE, LEDGER_CHECK):
-            return 0, "ok\n"
+            return 0, "ok\n", ""
         if cmd[:3] == ("gh", "issue", "list"):
-            return 0, self.gh_issues
+            return 0, self.gh_issues, ""
         if cmd[:3] == ("gh", "pr", "view"):
-            return 0, self.pr_url + "\n"
+            head = self.pr_head or git(self.root, "rev-parse", "HEAD").strip()
+            return 0, json.dumps({"url": self.pr_url, "headRefOid": head}), ""
         if cmd[:2] in (("gh", "auth"), ("gh", "pr")):
-            return 0, ""
+            return 0, "", ""
         raise AssertionError(f"unexpected command {cmd}")
 
 
@@ -150,7 +157,8 @@ def test_start_after_an_ended_run_changes_nothing(repo, capsys):
     ended = (repo / "build/overnight/run.json").read_text()
     code, out = run_cli(capsys, m, "start", "8h")
     assert code == 1
-    assert "has ended" in out
+    assert "has ended; to start a new run:" in out
+    assert "delete build/overnight/" in out
     assert (repo / "build/overnight/run.json").read_text() == ended
 
 
@@ -181,14 +189,14 @@ def test_status_prints_remaining_0m_at_the_limit(repo, capsys):
 def test_status_prints_the_stall_line_after_30_minutes_with_no_commit(repo, capsys):
     m, clock, _ = started(repo, capsys)
     out = status_at(capsys, m, clock, 30)
-    assert "minutes since last commit: 30" in out
+    assert "minutes since last commit or journal line: 30" in out
     assert STALLED not in out
     assert STALLED in status_at(capsys, m, clock, 31)
     (repo / "note.txt").write_text("x")
     git(repo, "add", "note.txt")
     git(repo, "commit", "-q", "-m", "batch", when=T0 + timedelta(minutes=20))
     out = status_at(capsys, m, clock, 50)
-    assert "minutes since last commit: 30" in out
+    assert "minutes since last commit or journal line: 30" in out
     assert STALLED not in out
     assert STALLED in status_at(capsys, m, clock, 51)
 
@@ -212,7 +220,7 @@ def test_status_counts_merged_batches_and_new_matches(repo, capsys):
     out = status_at(capsys, m, clock, 10)
     assert "batches merged: 1" in out
     assert "since start: 4 matched, 1 parked" in out
-    assert "minutes since last commit: 4" in out
+    assert "minutes since last commit or journal line: 4" in out
     assert "ghidra-mcp: up" in out
 
 
@@ -248,6 +256,7 @@ def ready(repo, monkeypatch):
     (repo / ".gitignore").write_text("/build/\n/orig/\n/ghidra/\n/tools/\n")
     git(repo, "add", ".")
     git(repo, "commit", "-q", "-m", "inputs", when=T0 - timedelta(days=1))
+    git(repo, "push", "-q", "origin", "main")
     return repo
 
 
@@ -286,7 +295,7 @@ def test_preflight_fails_on_an_assigned_ghidra_writer_task(ready, capsys):
 
 def test_preflight_fails_when_gh_fails(ready, capsys):
     fakes = Fakes(ready)
-    fakes.answers[("gh", "auth", "status")] = (1, "not logged in")
+    fakes.answers[("gh", "auth", "status")] = (1, "", "not logged in")
     fakes.gh_issues = "gh: error"
     code, out = run_cli(capsys, machine(ready, Clock(T0), fakes), "preflight")
     assert code == 1
@@ -299,7 +308,7 @@ def test_preflight_names_each_other_failing_check(ready, capsys):
     (ready / "build/strings.tsv").rmdir()
     (ready / "ghidra/.sync-stamp").unlink()
     fakes = Fakes(ready)
-    fakes.answers[GATE[1]] = (1, "E501")
+    fakes.answers[GATE[1]] = (1, "E501", "")
     m = machine(ready, Clock(T0), fakes, up=False)
     code, out = run_cli(capsys, m, "preflight")
     assert code == 1
@@ -328,7 +337,7 @@ def test_finish_prints_gate_pass_only_when_every_command_passes(repo, capsys):
 @pytest.mark.parametrize("failing", [*GATE, LEDGER_CHECK])
 def test_finish_names_the_failing_command(repo, capsys, failing):
     m, _, fakes = started(repo, capsys)
-    fakes.answers[failing] = (1, "the reason\n")
+    fakes.answers[failing] = (1, "the reason\n", "")
     code, out = run_cli(capsys, m, "finish")
     assert code == 1
     assert "gate: pass" not in out
@@ -342,8 +351,9 @@ def test_finish_names_the_failing_command(repo, capsys, failing):
 
 def test_finish_without_a_run_still_runs_the_gate(repo, capsys):
     fakes = Fakes(repo)
-    fakes.answers[("gh", "pr", "view", "main", "--json", "url", "--jq", ".url")] = (
+    fakes.answers[("gh", "pr", "view", "main", "--json", "url,headRefOid")] = (
         1,
+        "",
         "no pull requests found",
     )
     code, out = run_cli(capsys, machine(repo, Clock(T0), fakes), "finish")
@@ -365,3 +375,116 @@ def test_a_broken_run_file_is_no_run(tmp_path):
     ):
         path.write_text(text)
         assert overnight.read_run(path) is None
+
+
+def test_preflight_fails_when_main_differs_from_origin_main(ready, capsys):
+    (ready / "note.txt").write_text("x")
+    git(ready, "add", "note.txt")
+    git(ready, "commit", "-q", "-m", "local only")
+    code, out = run_cli(capsys, machine(ready, Clock(T0), Fakes(ready)), "preflight")
+    assert code == 1
+    assert "main is origin/main: fail (main is " in out
+
+
+def test_start_refuses_when_main_is_behind_origin_main(repo, tmp_path, capsys):
+    other = tmp_path / "other"
+    git(tmp_path, "clone", "-q", str(tmp_path / "origin.git"), str(other))
+    (other / "merged.txt").write_text("x")
+    git(other, "add", "merged.txt")
+    git(other, "commit", "-q", "-m", "a night pull request")
+    git(other, "push", "-q", "origin", "main")
+    m = machine(repo, Clock(T0), Fakes(repo))
+    code, out = run_cli(capsys, m, "start", "8h")
+    assert code == 1
+    assert "update main first; nothing changed" in out
+    assert git(repo, "branch", "--show-current").strip() == "main"
+    assert not (repo / "build/overnight/run.json").exists()
+
+
+def test_start_refuses_a_dirty_checkout(repo, capsys):
+    functions(repo, 1, 0)
+    m = machine(repo, Clock(T0), Fakes(repo))
+    code, out = run_cli(capsys, m, "start", "8h")
+    assert code == 1
+    assert "start: 1 tracked files changed; nothing changed" in out
+    assert git(repo, "branch", "--show-current").strip() == "main"
+    assert not (repo / "build/overnight/run.json").exists()
+
+
+def test_start_adds_a_suffix_when_the_run_branch_exists(repo, capsys):
+    git(repo, "branch", "match/night-2026-11-25")
+    git(repo, "branch", "match/night-2026-11-25-2")
+    m = machine(repo, Clock(T0), Fakes(repo))
+    code, out = run_cli(capsys, m, "start", "1h")
+    assert code == 0
+    assert "start: made run branch match/night-2026-11-25-3, limit 1h" in out
+    assert git(repo, "branch", "--show-current").strip() == "match/night-2026-11-25-3"
+
+
+def test_a_journal_line_counts_as_activity(repo, capsys):
+    m, clock, _ = started(repo, capsys)
+    journal = repo / "build/overnight/journal.md"
+    journal.write_text("batch 1: gate failed, reset\n")
+    when = (T0 + timedelta(minutes=25)).timestamp()
+    os.utime(journal, (when, when))
+    out = status_at(capsys, m, clock, 55)
+    assert "minutes since last commit or journal line: 30" in out
+    assert STALLED not in out
+    assert STALLED in status_at(capsys, m, clock, 56)
+
+
+def test_status_of_an_ended_run_is_frozen_and_logs_nothing(repo, capsys):
+    m, clock, _ = started(repo, capsys)
+    clock.when = T0 + timedelta(minutes=470)
+    assert run_cli(capsys, m, "finish")[0] == 0
+    log = (repo / "build/overnight/log.tsv").read_text()
+    out = status_at(capsys, m, clock, 900)
+    assert "elapsed: 7h50m of 8h" in out
+    assert "run: ended 2026-11-26T05:50:00+00:00" in out
+    assert "wrap up" not in out
+    assert STALLED not in out
+    assert (repo / "build/overnight/log.tsv").read_text() == log
+
+
+@pytest.mark.parametrize("command", [("start", "8h"), ("status",)])
+def test_an_unreadable_run_file_gives_the_recovery_steps(repo, capsys, command):
+    (repo / "build/overnight").mkdir(parents=True)
+    (repo / "build/overnight/run.json").write_text("garbage")
+    code, out = run_cli(capsys, machine(repo, Clock(T0), Fakes(repo)), *command)
+    assert code == 1
+    assert "cannot be read; to start a new run:" in out
+
+
+def test_finish_fails_on_another_branch_and_does_not_mark_ready(repo, capsys):
+    m, _, fakes = started(repo, capsys)
+    git(repo, "switch", "-q", "main")
+    code, out = run_cli(capsys, m, "finish")
+    assert code == 1
+    assert "gate: fail (the checkout is on main, not on match/night-2026-11-25)" in out
+    assert not any(call in fakes.calls for call in (*GATE, LEDGER_CHECK))
+    assert not any(call[:3] == ("gh", "pr", "ready") for call in fakes.calls)
+
+
+def test_finish_fails_when_head_is_not_the_pull_request_head(repo, capsys):
+    m, _, fakes = started(repo, capsys)
+    fakes.pr_head = "0" * 40
+    code, out = run_cli(capsys, m, "finish")
+    assert code == 1
+    assert f"is not the pull request head {'0' * 40}" in out
+    assert "gate: pass" not in out
+    assert not any(call[:3] == ("gh", "pr", "ready") for call in fakes.calls)
+    run = json.loads((repo / "build/overnight/run.json").read_text())
+    assert run["gate"] == "fail"
+
+
+def test_shell_keeps_stdout_and_stderr_apart_and_times_out(tmp_path, monkeypatch):
+    run = overnight.shell(tmp_path)
+    assert run(["sh", "-c", "echo out; echo err >&2"]) == (0, "out\n", "err\n")
+    monkeypatch.setattr(overnight, "CALL_TIMEOUT", 0.2)
+    code, out, err = run(["sleep", "5"])
+    assert (code, out) == (124, "")
+    assert "timed out" in err
+
+
+def test_a_url_with_no_scheme_is_no_answer():
+    assert overnight.answers("127.0.0.1:1") is False

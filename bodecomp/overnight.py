@@ -20,6 +20,7 @@ from bodecomp.sync import STAMP, SYMBOLS, freshness
 STATE = Path("build/overnight")
 RUN = STATE / "run.json"
 LOG = STATE / "log.tsv"
+JOURNAL = STATE / "journal.md"
 XBE = Path("orig/default.xbe")
 INPUTS = (
     Path("build/target"),
@@ -29,7 +30,7 @@ INPUTS = (
 )
 URL = os.environ.get("GHIDRA_MCP_URL", "http://127.0.0.1:8089")
 # The second night run (#97) took about 9.6 minutes per batch and at most about
-# 16, so 30 minutes with no commit means a stall. Row 6 of
+# 16, so 30 minutes with no commit and no journal line means a stall. Row 6 of
 # docs/research/10-overnight-design.md sets the final value after the rehearsal.
 STALL_MINUTES = 30
 WRAP_UP_PERCENT = 85
@@ -52,20 +53,33 @@ LOG_HEADER = (
     "worktrees",
     "server",
 )
+# git and gh calls get this many seconds. The gate commands get no limit.
+CALL_TIMEOUT = 60
+NEW_RUN = (
+    "to start a new run: copy what you need from build/overnight/journal.md, "
+    "remove the night worktrees with git worktree remove, delete build/overnight/, "
+    "then run uv run python -m bodecomp.overnight preflight and start again"
+)
 STALLED = (
     "stalled: stop the running matcher, park its open functions, start the next batch"
 )
 
-Runner = Callable[[Sequence[str]], tuple[int, str]]
+# A runner returns the exit code, the standard output and the error output.
+Runner = Callable[[Sequence[str]], tuple[int, str, str]]
 
 
 def shell(root: Path) -> Runner:
-    def run(cmd: Sequence[str]) -> tuple[int, str]:
+    def run(cmd: Sequence[str]) -> tuple[int, str, str]:
+        timeout = None if tuple(cmd) in (*GATE, LEDGER_CHECK) else CALL_TIMEOUT
         try:
-            done = subprocess.run(list(cmd), cwd=root, capture_output=True, text=True)
+            done = subprocess.run(
+                list(cmd), cwd=root, capture_output=True, text=True, timeout=timeout
+            )
+        except subprocess.TimeoutExpired:
+            return 124, "", f"timed out after {timeout} seconds"
         except OSError as error:
-            return 127, str(error)
-        return done.returncode, done.stdout + done.stderr
+            return 127, "", str(error)
+        return done.returncode, done.stdout, done.stderr
 
     return run
 
@@ -74,7 +88,7 @@ def answers(url: str = URL, timeout: float = 2) -> bool:
     try:
         with urllib.request.urlopen(f"{url}/check_connection", timeout=timeout):
             return True
-    except OSError:
+    except (OSError, ValueError):
         return False
 
 
@@ -111,6 +125,8 @@ def read_run(path: Path) -> dict | None:
         int(data["limit_minutes"])
         str(data["branch"])
         str(data["base"])
+        if data.get("ended"):
+            datetime.fromisoformat(data["ended"])
     except (OSError, ValueError, TypeError, KeyError):
         return None
     return data
@@ -135,7 +151,7 @@ def minutes_between(earlier: datetime, later: datetime) -> int:
 
 
 def merged_batches(m: Machine, run: dict) -> int:
-    code, out = m.run(
+    code, out, _ = m.run(
         [
             "git",
             "rev-list",
@@ -149,14 +165,26 @@ def merged_batches(m: Machine, run: dict) -> int:
 
 
 def last_commit(m: Machine, branch: str) -> datetime | None:
-    code, out = m.run(["git", "log", "-1", "--format=%ct", branch])
+    code, out, _ = m.run(["git", "log", "-1", "--format=%ct", branch])
     if code != 0 or not out.strip().isdigit():
         return None
     return datetime.fromtimestamp(int(out.strip()), UTC)
 
 
+def journal_time(m: Machine) -> datetime | None:
+    try:
+        return datetime.fromtimestamp((m.root / JOURNAL).stat().st_mtime, UTC)
+    except OSError:
+        return None
+
+
+def git_out(m: Machine, *args: str) -> str | None:
+    code, out, _ = m.run(["git", *args])
+    return out.strip() if code == 0 else None
+
+
 def other_worktrees(m: Machine) -> list[str]:
-    code, out = m.run(["git", "worktree", "list", "--porcelain"])
+    code, out, _ = m.run(["git", "worktree", "list", "--porcelain"])
     if code != 0:
         return []
     here = m.root.resolve()
@@ -169,7 +197,8 @@ def other_worktrees(m: Machine) -> list[str]:
 
 
 def status(m: Machine, run: dict) -> list[str]:
-    now = m.now()
+    live = is_live(run)
+    now = m.now() if live else datetime.fromisoformat(run["ended"])
     start = datetime.fromisoformat(run["start"])
     limit = int(run["limit_minutes"])
     elapsed = minutes_between(start, now)
@@ -179,9 +208,11 @@ def status(m: Machine, run: dict) -> list[str]:
     matched -= int(run.get("matched_at_start", 0))
     parked -= int(run.get("parked_at_start", 0))
     # Before the first commit of the run, the last commit is the one on main,
-    # which can be days old, so the idle time counts from the start at most.
-    last = last_commit(m, run["branch"])
-    idle = minutes_between(start if last is None else max(start, last), now)
+    # which can be days old, so the idle time counts from the start at most. A
+    # batch that failed the gate is reset and leaves no commit, but the lead
+    # writes a journal line for it, so a journal line counts as activity too.
+    times = [start, last_commit(m, run["branch"]), journal_time(m)]
+    idle = minutes_between(max(t for t in times if t is not None), now)
     worktrees = other_worktrees(m)
     up = m.server_up()
     lines = [
@@ -190,10 +221,13 @@ def status(m: Machine, run: dict) -> list[str]:
         f"branch: {run['branch']}",
         f"batches merged: {batches}",
         f"since start: {matched} matched, {parked} parked",
-        f"minutes since last commit: {idle}",
+        f"minutes since last commit or journal line: {idle}",
         f"worktrees: {', '.join(worktrees) if worktrees else 'none'}",
         f"ghidra-mcp: {'up' if up else 'down'}",
     ]
+    if not live:
+        lines.append(f"run: ended {run['ended']}")
+        return lines
     if elapsed * 100 >= limit * WRAP_UP_PERCENT:
         lines.append("wrap up: start no new batch")
     if idle > STALL_MINUTES:
@@ -226,43 +260,54 @@ def start(m: Machine, limit: int) -> int:
         print("\n".join(status(m, run)))
         return 0
     if run is not None:
-        print(f"start: the run of {run['start']} has ended; delete {STATE} first")
+        print(f"start: the run of {run['start']} has ended; {NEW_RUN}")
         return 1
     if path.exists():
-        print(f"start: {RUN} cannot be read; delete it first")
+        print(f"start: {RUN} cannot be read; {NEW_RUN}")
         return 1
+    for check in (check_clean, check_origin_main):
+        problem = check(m)
+        if problem is not None:
+            print(f"start: {problem}; nothing changed")
+            return 1
     now = m.now()
-    branch = f"match/night-{now.date().isoformat()}"
-    code, base = m.run(["git", "rev-parse", "--verify", "main"])
-    if code != 0:
-        print(f"start: no main branch: {base.strip()}")
-        return 1
-    code, out = m.run(["git", "switch", "-c", branch, "main"])
-    if code != 0:
-        print(f"start: could not make {branch}: {out.strip()}")
+    branch = free_branch(m, f"match/night-{now.date().isoformat()}")
+    base = git_out(m, "rev-parse", "--verify", "main")
+    code, _, err = m.run(["git", "switch", "-c", branch, "main"])
+    if base is None or code != 0:
+        print(f"start: could not make {branch} from main: {err.strip()}")
         return 1
     matched, parked = counts(m.root)
     run = {
         "start": now.isoformat(timespec="seconds"),
         "limit_minutes": limit,
         "branch": branch,
-        "base": base.strip(),
+        "base": base,
         "matched_at_start": matched,
         "parked_at_start": parked,
         "ended": None,
     }
     write_run(path, run)
-    print(f"start: run branch {branch}, limit {duration(limit)}")
+    print(f"start: made run branch {branch}, limit {duration(limit)}")
     print("\n".join(status(m, run)))
     return 0
+
+
+def free_branch(m: Machine, name: str) -> str:
+    """Return name, or name with the first suffix -2, -3, ... that no branch has."""
+    candidate, number = name, 1
+    while git_out(m, "rev-parse", "--verify", "--quiet", f"refs/heads/{candidate}"):
+        number += 1
+        candidate = f"{name}-{number}"
+    return candidate
 
 
 def run_gate(m: Machine, commands: Sequence[Sequence[str]]) -> tuple[str, str] | None:
     """Return the first failing command and its output, or None."""
     for cmd in commands:
-        code, out = m.run(cmd)
+        code, out, err = m.run(cmd)
         if code != 0:
-            return " ".join(cmd), out
+            return " ".join(cmd), out + err
     return None
 
 
@@ -271,11 +316,24 @@ def tail(text: str, count: int = 20) -> str:
 
 
 def check_clean(m: Machine) -> str | None:
-    code, out = m.run(["git", "status", "--porcelain", "--untracked-files=no"])
-    if code != 0:
+    out = git_out(m, "status", "--porcelain", "--untracked-files=no")
+    if out is None:
         return "git status failed"
     changed = out.splitlines()
     return f"{len(changed)} tracked files changed" if changed else None
+
+
+def check_origin_main(m: Machine) -> str | None:
+    # start makes the run branch from local main, and the user merges each night
+    # pull request on GitHub, so local main can be behind origin/main.
+    code, _, err = m.run(["git", "fetch", "origin", "main"])
+    if code != 0:
+        return f"git fetch origin main failed: {err.strip()}"
+    local = git_out(m, "rev-parse", "--verify", "main")
+    remote = git_out(m, "rev-parse", "--verify", "origin/main")
+    if local is None or remote is None or local != remote:
+        return f"main is {local}, origin/main is {remote}; update main first"
+    return None
 
 
 def check_xbe(m: Machine) -> str | None:
@@ -306,12 +364,12 @@ def check_server(m: Machine) -> str | None:
 
 
 def check_gh_auth(m: Machine) -> str | None:
-    code, _ = m.run(["gh", "auth", "status"])
+    code, _, _ = m.run(["gh", "auth", "status"])
     return None if code == 0 else "gh auth status failed"
 
 
 def check_ghidra_writer(m: Machine) -> str | None:
-    code, out = m.run(
+    code, out, _ = m.run(
         [
             "gh",
             "issue",
@@ -345,6 +403,7 @@ def check_gate(m: Machine) -> str | None:
 
 CHECKS = (
     ("uncommitted changes", check_clean),
+    ("main is origin/main", check_origin_main),
     ("xbe hash", check_xbe),
     ("ignored inputs", check_inputs),
     ("ghidra project", check_ghidra_project),
@@ -365,32 +424,51 @@ def preflight(m: Machine) -> int:
     return 0 if passed else 1
 
 
+def pull_request(m: Machine, branch: str) -> tuple[str, str] | None:
+    """Return the URL and the head commit of the branch's pull request, or None."""
+    code, out, _ = m.run(["gh", "pr", "view", branch, "--json", "url,headRefOid"])
+    try:
+        found = json.loads(out) if code == 0 else None
+        return str(found["url"]), str(found["headRefOid"])
+    except (ValueError, TypeError, KeyError):
+        return None
+
+
 def finish(m: Machine) -> int:
     path = m.root / RUN
     run = read_run(path)
-    failed = run_gate(m, [*GATE, LEDGER_CHECK])
-    if failed is None:
-        print("gate: pass")
-    else:
+    current = git_out(m, "branch", "--show-current") or ""
+    head = git_out(m, "rev-parse", "HEAD")
+    branch = run["branch"] if run is not None else current
+    pr = pull_request(m, branch)
+    # The gate proves only the code it ran on, so finish runs it only on the
+    # commit that the pull request holds.
+    mismatch = None
+    if run is not None and current != branch:
+        mismatch = f"the checkout is on {current or 'no branch'}, not on {branch}"
+    elif pr is not None and pr[1] != head:
+        mismatch = f"HEAD {head} is not the pull request head {pr[1]}; push {branch}"
+    failed = None if mismatch else run_gate(m, [*GATE, LEDGER_CHECK])
+    passed = mismatch is None and failed is None
+    if mismatch:
+        print(f"gate: fail ({mismatch})")
+    elif failed:
         print(f"gate: fail ({failed[0]})")
         print(tail(failed[1]))
-    if run is not None:
-        branch = run["branch"]
     else:
-        branch = m.run(["git", "branch", "--show-current"])[1].strip()
-    code, url = m.run(["gh", "pr", "view", branch, "--json", "url", "--jq", ".url"])
-    if code == 0 and url.strip():
-        if failed is None and m.run(["gh", "pr", "ready", branch])[0] != 0:
-            print("pull request: could not mark it ready")
-        print(f"pull request: {url.strip()}")
-    else:
+        print("gate: pass")
+    if pr is None:
         print(f"pull request: none for {branch}")
-    if is_live(run):
-        run["ended"] = m.now().isoformat(timespec="seconds")
-        run["gate"] = "pass" if failed is None else "fail"
+    else:
+        if passed and m.run(["gh", "pr", "ready", branch])[0] != 0:
+            print("pull request: could not mark it ready")
+        print(f"pull request: {pr[0]}")
+    if run is not None:
+        run["ended"] = run.get("ended") or m.now().isoformat(timespec="seconds")
+        run["gate"] = "pass" if passed else "fail"
         write_run(path, run)
-        print("run: ended")
-    return 0 if failed is None else 1
+        print(f"run: ended {run['ended']}")
+    return 0 if passed else 1
 
 
 def hook_line(m: Machine) -> str | None:
@@ -435,14 +513,16 @@ def main(argv: list[str] | None = None, machine: Machine | None = None) -> int:
         if line:
             print(line)
         return 0
-    run = read_run(m.root / RUN)
+    path = m.root / RUN
+    run = read_run(path)
+    if run is None and path.exists():
+        print(f"status: {RUN} cannot be read; {NEW_RUN}")
+        return 1
     if run is None:
         print("status: no run; start one with")
         print("  uv run python -m bodecomp.overnight start 8h")
         return 1
     print("\n".join(status(m, run)))
-    if not is_live(run):
-        print(f"run: ended {run['ended']}")
     return 0
 
 
