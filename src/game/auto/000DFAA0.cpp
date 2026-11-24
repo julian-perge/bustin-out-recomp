@@ -10,12 +10,12 @@ struct S_000dfaa0
 };
 
 // 0x000DFAA0
-// parked: scheduling
 void S_000dfaa0::FUN_000dfaa0(int p)
 {
     if (p) {
+        unsigned& r = flags;
         fl |= 0x10;
         v = p;
-        flags |= 2;
+        r |= 2;
     }
 }

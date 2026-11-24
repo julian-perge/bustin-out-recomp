@@ -16,6 +16,6 @@ struct S_00119fb0
 void S_00119fb0::FUN_00119fb0(int x)
 {
     hi = 0;
-    v |= 0x80000000;
+    v = v | 0x80000000;
     w = x;
 }

@@ -1,12 +1,7 @@
 struct S_0010a4b0
 {
-    union {
-        unsigned v;
-        struct {
-            unsigned short lo;
-            unsigned short hi;
-        };
-    };
+    unsigned v;
+    void SetHi(unsigned short h) { ((unsigned short*)this)[1] = h; }
     void FUN_0010a4b0(unsigned x);
 };
 
@@ -14,6 +9,6 @@ struct S_0010a4b0
 // parked: source shape
 void S_0010a4b0::FUN_0010a4b0(unsigned x)
 {
-    hi = 0;
-    v |= x << 16;
+    SetHi(0);
+    v = v | (x << 16);
 }

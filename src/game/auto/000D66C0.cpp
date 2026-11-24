@@ -10,10 +10,10 @@ struct S_000d66c0
 };
 
 // 0x000D66C0
-// parked: scheduling
 void S_000d66c0::FUN_000d66c0(float v)
 {
+    unsigned& r = flags;
     fl |= 0x10;
     f = v;
-    flags |= 2;
+    r |= 2;
 }
