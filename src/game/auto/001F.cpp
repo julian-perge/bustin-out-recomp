@@ -212,3 +212,69 @@ void S_001FEB60::fn_001FEB60(int)
 {
     inner->v43();
 }
+
+struct S_001F1EE0
+{
+    int v;
+    bool FUN_001F1EE0(const S_001F1EE0& o) const;
+};
+
+// 0x001F1EE0
+bool S_001F1EE0::FUN_001F1EE0(const S_001F1EE0& o) const
+{
+    return v != o.v;
+}
+
+struct S_001F28A0
+{
+    char pad[4];
+    bool set;
+    float val;
+    void FUN_001F28A0(float f);
+};
+
+// 0x001F28A0
+void S_001F28A0::FUN_001F28A0(float f)
+{
+    set = true;
+    val = f;
+}
+
+struct S_001F5BF0
+{
+    unsigned data[256];
+    S_001F5BF0();
+};
+
+// 0x001F5BF0
+S_001F5BF0::S_001F5BF0()
+{
+    for (int i = 0; i < 256; i++)
+        data[i] = 0;
+}
+
+struct S_001FE370
+{
+    int v;
+    bool FUN_001FE370(const S_001FE370& o) const;
+};
+
+// 0x001FE370
+bool S_001FE370::FUN_001FE370(const S_001FE370& o) const
+{
+    return v == o.v;
+}
+
+struct S_001FE540
+{
+    int a;
+    int b;
+    S_001FE540(int x);
+};
+
+// 0x001FE540
+S_001FE540::S_001FE540(int x)
+{
+    a = x;
+    b = 0;
+}

@@ -78,3 +78,15 @@ bool S_0021B4A0::fn_0021B4A0(const S_0021B4A0* o)
 {
     return (m & o->m) != 0;
 }
+
+struct S_0021B460
+{
+    char c;
+    bool FUN_0021B460(const S_0021B460& o) const;
+};
+
+// 0x0021B460
+bool S_0021B460::FUN_0021B460(const S_0021B460& o) const
+{
+    return c == o.c;
+}

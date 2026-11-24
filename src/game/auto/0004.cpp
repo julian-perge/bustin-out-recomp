@@ -72,3 +72,32 @@ S_00048CC0* S_00048CC0::fn_00048CC0(int x, int y)
     b = y;
     return this;
 }
+
+struct S_00040AF0
+{
+    float x;
+    float y;
+    float FUN_00040AF0(const S_00040AF0* o) const;
+};
+
+// 0x00040AF0
+float S_00040AF0::FUN_00040AF0(const S_00040AF0* o) const
+{
+    return o->y * y + o->x * x;
+}
+
+// 0x0004ACC0
+void FUN_0004ACC0(int* a, int* b)
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+
+// 0x0004B050
+void FUN_0004B050(int* a, int* b)
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
