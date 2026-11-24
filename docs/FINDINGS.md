@@ -1049,7 +1049,21 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 
 ## F-0151 A null-guarded tail call through a member pointer at 0x001FE880 matches only through a local copy
 - Status: confirmed
-- Addresses: 0x001FE880
-- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 24 and the reviewer's compiles in a scratch copy (2026-11-24)
-- Evidence: The function is `mov ecx,[ecx+0x1d0]; test ecx,ecx; jz; mov eax,[ecx]; jmp [eax+0xa4]; mov al,1; ret 4`. With a local copy `T* p = t;`, both `return p ? p->v41(a) : true;` and `if (p) return p->v41(a); return true;` give 100%. Forms on the member give 17.9% (`if (t) ...` and the ternary) and 14.3% (`if (!t) return true;`), and the local with `if (!p) return true;` gives 43.5%. The reviewer passed the local copy under S1 as ordinary code that caches a pointer it tests and calls through; it is not the store-order reference that F-0117 failed.
+- Addresses: 0x001FE880, 0x000F5070
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 24 and the reviewer's compiles in a scratch copy (2026-11-24); ghidra-mcp disassemble_function and the reviewer's compiles in a scratch copy for 0x000F5070 in night batch 25 (2026-11-24)
+- Evidence: The function is `mov ecx,[ecx+0x1d0]; test ecx,ecx; jz; mov eax,[ecx]; jmp [eax+0xa4]; mov al,1; ret 4`. With a local copy `T* p = t;`, both `return p ? p->v41(a) : true;` and `if (p) return p->v41(a); return true;` give 100%. Forms on the member give 17.9% (`if (t) ...` and the ternary) and 14.3% (`if (!t) return true;`), and the local with `if (!p) return true;` gives 43.5%. The reviewer passed the local copy under S1 as ordinary code that caches a pointer it tests and calls through; it is not the store-order reference that F-0117 failed. Night batch 25 found the same result at 0x000F5070, `cmp byte [ecx+0x80],0; jz; mov ecx,[ecx+0x30]; test ecx,ecx; jz; mov eax,[ecx]; jmp [eax+0x14]; ret 4`. With `T* p = t;` inside `if (on)` or after `if (!on) return;` it gives 100%. Six forms that read the member twice give 34.6%, with the first difference at +0x8, and `T* p = t; if (on && p)` gives 19.2%.
 - Revisit when: a null-guarded call through a member pointer matches without a local.
+
+## F-0152 A masked table push at 0x00033B00 matches when the masked index is computed once
+- Status: confirmed
+- Addresses: 0x00033B00
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 25 and the reviewer's compiles in a scratch copy (2026-11-24)
+- Evidence: The function is `mov eax,[esp+8]; mov edx,[esp+4]; and eax,0x3f; push esi; mov esi,[ecx+eax*4]; mov [edx],esi; mov [ecx+eax*4],edx; pop esi; ret 8`. `unsigned h = i & 0x3f;` (or `int h`, or `i &= 0x3f;`) followed by `n->next = t[h]; t[h] = n;` gives 100%. The repeated `t[i & 0x3f]` gives 33.3%, with the first difference at +0x4, and so does a pointer `N** s = &t[i & 0x3f];`. The reviewer passed the named index under S1 as the ordinary way to write a hash-bucket push.
+- Revisit when: a form with the repeated expression matches.
+
+## F-0153 A call through the second of two virtual bases at 0x000B04B0 matches with the bases declared
+- Status: confirmed
+- Addresses: 0x000B04B0
+- Checked: ghidra-mcp disassemble_function and get_xrefs_to by the matcher and the reviewer; `uv run python -m bodecomp.match` in the worktree of night batch 25 (2026-11-24)
+- Evidence: The function is `mov eax,[ecx+4]; mov ecx,[eax+4]; mov edx,[ecx+8]; lea ecx,[edx+eax+4]; mov eax,[ecx]; call [eax+0x1c4]; mov eax,[eax]; ret`: it loads a member pointer, finds the second virtual base through the vbtable at +4, calls slot 113 and returns the int that the result points to. `struct T : virtual V1, virtual V2` with 113 placeholder virtuals in `V2` before the called one matches at 100% with no cast; 112 slots give 95.8%. Ghidra has no reference to the function. F-0131 is another virtual-base conversion that VC71 generates from declared bases.
+- Revisit when: the real class is known and the placeholder slots get names.
