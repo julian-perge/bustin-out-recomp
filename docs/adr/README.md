@@ -26,3 +26,4 @@ Each decision about method or architecture gets a numbered file with Status, Dat
 | [0020](0020-agent-push-and-merge-commit.md) | An agent pushes a feature branch without asking, every pull request merges with a merge commit, and a stage session writes its own findings | Accepted |
 | [0021](0021-generated-session-state-and-ghidra-freshness.md) | The session hook generates the state of the work, the `ghidra-writer` label names the Ghidra writer, and a sync stamp shows whether a Ghidra project is level | Accepted; points 8 and 9 are amended by ADR-0022 |
 | [0022](0022-function-hash-covers-function-starts.md) | The functions hash of the sync stamp covers only the function starts, so a function rename asks for `sync apply` and not for a rebuild | Accepted |
+| [0023](0023-unattended-run.md) | An unattended run: one session runs matcher batches on a run branch `match/night-<date>` with a draft pull request, the user merges it, and no sandbox is used | Accepted |
