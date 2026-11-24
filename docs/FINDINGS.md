@@ -899,3 +899,31 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function, force_decompile and get_xrefs_to by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 10 (2026-11-24)
 - Evidence: The function is `test ecx,ecx; jz; mov eax,[ecx]; mov edx,[eax+0xc]; mov eax,[ecx+edx]; add ecx,edx; jmp [eax+0x2c]; xor eax,eax; ret`: when `this` is not null, it calls slot 11 of the third virtual base, found through the vbtable entry at +0xc. Ghidra has no reference to it. The matcher reports 4.8% for a class with three virtual bases and `this ? C::c11() : 0`, which VC71 compiles as a direct call, and 0% for a free function. An unqualified virtual call was not tried.
 - Next: try `c11()` as an unqualified virtual call through the virtual base, and look for the vtable that holds 0x0018E580.
+
+## F-0130 The unit of 0x00011B90 holds a second function at 0x00011BA0 that Ghidra has not created
+- Status: open
+- Addresses: 0x00011B90, 0x00011BA0
+- Checked: ghidra-mcp disassemble_function, read_memory and get_xrefs_to by the matcher and the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 11 (2026-11-24)
+- Evidence: 0x00011B90 is 16 bytes, `8B C1 33 C9 89 08 89 48 04 89 48 08 89 48 0C C3`: it zeroes four ints and returns `this`, and Ghidra ends it at 0x00011B9F. The unit goes on with `8B C1 C2 04 00` (`mov eax,ecx; ret 4`) at 0x00011BA0, then `cc` padding to 0x00011BB0. `disassemble_function` finds no function at 0x00011BA0, and `get_xrefs_to` gives no reference to either address. The source builds 16 of the 21 bytes, 76.2%, and the function is parked as `unclassified`, as F-0124, F-0126 and F-0128 are.
+- Next: find out whether 0x00011BA0 is a real entry (look for a vtable or table that holds it), create the function as issue #94 did, then match both.
+
+## F-0131 A pointer converted to its third virtual base matches 0x001B6550
+- Status: confirmed
+- Addresses: 0x001B6550
+- Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24); ghidra-mcp disassemble_function by the reviewer (2026-11-24)
+- Evidence: The original loads the pointer at `this-0x70`, tests it for null, then adds `[[p]+0xc]` to it. A `D*` converted to `V3*`, with `struct D : virtual V1, virtual V2, virtual V3`, matches at 100%. The matcher reports that a raw-pointer form does not match; the reviewer did not compile that form.
+- Revisit when: a function of this shape does not match with the virtual-base conversion.
+
+## F-0132 A constant-size zeroing of a member array matches 0x001E75C0 only through memset
+- Status: confirmed
+- Addresses: 0x001E75C0
+- Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24)
+- Evidence: `memset(v, 0, sizeof(v))` on the member array at `this->v[0x50]`, with `extern "C" void* __cdecl memset(void*, int, unsigned int);` declared in the source, matches at 100%. The matcher reports that plain loops build 18 bytes and that `#include <string.h>` fails with C1034, because the build has no include path. The reviewer did not compile the other forms.
+- Revisit when: the build gets an include path for the CRT headers.
+
+## F-0133 A virtual forwarder matches 0x001AEF90 only when it returns the callee's value
+- Status: confirmed
+- Addresses: 0x001AEF90
+- Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24); ghidra-mcp disassemble_function by the reviewer (2026-11-24)
+- Evidence: The original sign-extends the argument and tail-jumps through `jmp [eax+0x48]`. With slot 18 declared as `int FUN_s18(int)` and the method returning its result, the source matches at 100%. The matcher reports that with a `void` return VC71 puts the `movsx` before the `ecx` load; the reviewer did not compile that form.
+- Revisit when: a forwarder of this shape matches only with a `void` return.
