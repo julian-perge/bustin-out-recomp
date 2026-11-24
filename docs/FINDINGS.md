@@ -774,12 +774,12 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Evidence: The function is `MOV AX,[ECX]`, `CMP AX,0xffff`, `JNZ`, `OR AX,AX`, `RET`, then `AND AH,0x7f`, `RET`. The matcher reports that each of about 10 forms gives `and eax,0x7fff` or `and ax,0x7fff`: `unsigned short` and `short` locals, `r &= 0x7FFF`, a shift pair and casts. The reviewer did not check the count of forms. The kept form returns `v` when it is 0xFFFF and `v & 0x7FFF` otherwise. The function has an `auto` name and no known class, so no donor form was compiled.
 - Next: try a 15-bit bit-field with a 1-bit flag above it, and a byte-wise form that clears bit 7 of the high byte.
 
-## F-0112 0x001EF8E0 matches when the null test is an inline member of the pointed-to class
-- Status: open
-- Addresses: 0x001EF8E0
-- Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24)
-- Evidence: The form with an inline `Inner::get()` (`if (data) return data[-2]; return 0;`) called as `in->get()` matches at 100% in src/game/auto/001E.cpp. The matcher reports 76.5% for the form that reads `in->data` in the outer member, where the build loads `in` into EAX and the original keeps ECX, and 88.2% for a ternary inside `get()`. The reviewer did not compile those two forms (F-0077).
-- Next: compile the 76.5% and 88.2% forms and compare the bytes, then set the entry to confirmed.
+## F-0112 0x001EF8E0 and 0x0020FD40 match when the null test is an inline member of the pointed-to class
+- Status: confirmed
+- Addresses: 0x001EF8E0, 0x0020FD40
+- Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24); the reviewer's compiles of three other forms of 0x0020FD40 in a copy of the worktree of night batch 2, and ghidra-mcp disassemble_function (2026-11-24)
+- Evidence: The form with an inline `Inner::get()` (`if (data) return data[-2]; return 0;`) called as `in->get()` matches at 100% in src/game/auto/001E.cpp. The matcher reports 76.5% for the form that reads `in->data` in the outer member, where the build loads `in` into EAX and the original keeps ECX, and 88.2% for a ternary inside `get()`. The reviewer of night batch 1 did not compile those two forms (F-0077). 0x0020FD40 is `mov ecx,[ecx+8]; mov eax,[ecx]; test eax,eax; jz; mov ax,[eax-4]; ret; xor eax,eax; ret`. The reviewer of night batch 2 compiled three forms that read `inner->p` in the outer member: an `if` gives 66.7%, a local gives 66.7% and a ternary gives 76.5%, each with the first difference at +0x1. An inline `Inner::size()` called as `inner->size()` gives 100%.
+- Revisit when: a function of this shape matches only with the test in the outer member.
 
 ## F-0113 Four setters write a member of a virtual base at the vbptr offset plus the member offset
 - Status: open
@@ -794,3 +794,10 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24)
 - Evidence: `const char* p = s; const char* e = p + 1; char c; do c = *p++; while (c); return p - e;` matches at 100% in src/game/auto/001A.cpp. The matcher reports 5.3% for `while (*p++);` with `return p - s - 1`. The reviewer did not compile that form (F-0077).
 - Next: compile the `while (*p++)` form and compare the bytes, then set the entry to confirmed.
+
+## F-0115 0x0021B4A0 is parked as source shape at 64.7%
+- Status: open
+- Addresses: 0x0021B4A0
+- Checked: ghidra-mcp disassemble_function by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 2 (2026-11-24)
+- Evidence: The function is `mov al,[ecx]; mov ecx,[esp+4]; and al,[ecx]; neg al; sbb eax,eax; neg eax; ret 4`. It loads `*this` before the argument. The matcher reports that 9 forms load the argument first: the operands in both orders, `const char*` and `const S*` arguments, `char`, `unsigned char` and `bool` members, locals, a static helper, and `? :` and `if` returns. 7 give 64.7% and 2 give 0%. The reviewer did not compile them. The kept form is `(m & o->m) != 0`.
+- Next: try an inline helper of the class of the argument, as in F-0094 and F-0112, and read the callers in Ghidra to learn what the byte is.
