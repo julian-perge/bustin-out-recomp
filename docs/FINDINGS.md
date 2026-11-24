@@ -815,3 +815,24 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: the matcher's compiles in the worktree of night batch 3, ghidra-mcp search_instructions and disassemble_function by the matcher and the reviewer (2026-11-24)
 - Evidence: The function is `or byte [ecx+0x5b],0x10; mov [ecx+0x50],eax; or dword [ecx+8],2; ret 4`. VC71 puts `or [ecx+8],2` before the byte `or`. The matcher reports 10 forms: 9 give 61.1% (each statement order but one, a `char` flag byte, bit-fields, inline helpers with the +8 flag set last, a base-class helper, an out-of-line setter), and the order with the +8 flag first gives 44.4%. The reviewer did not compile them. A search for `or byte [reg+0x5b],0x10` finds setters with the same order: 0x000D66C0 (a float store), 0x000D9AC0 and 0x000D9AE0 (on an inner object) and 0x000DFAA0 (after a null test). 0x000D66A0 has the byte `or` and no `or [+8],2`. None of them is a shared helper.
 - Next: match one of the sibling setters to learn the shape that keeps the order.
+
+## F-0118 0x0010A4D0 is parked as source shape at 94.4%, because only a volatile parameter matches
+- Status: open
+- Addresses: 0x0010A4D0
+- Checked: the matcher's compiles in the worktree of night batch 4, the reviewer's compile of the `unsigned` form in a copy, ghidra-mcp disassemble_function and get_xrefs_to by the reviewer (2026-11-24)
+- Evidence: The function is `mov eax,[ecx]; mov edx,[esp+4]; and eax,0xffff8000; or eax,edx; mov [ecx],eax; ret 4`. `v = (v & 0xFFFF8000) | x;` with `unsigned x` gives 11.1%, because VC71 folds the argument into `or eax,[esp+4]` (16 bytes against 18); the reviewer compiled it again. `const unsigned&` gives 94.4% and is the kept form. `volatile unsigned x` gives 100%, but the reviewer failed it under S1, because a volatile on a parameter passed by value has no other use than to steer the compiler. The matcher reports that `int`, `unsigned short`, a struct with one member passed by value, a 15 and 17 bit-field pair and a volatile member do not match. Ghidra has no reference to the function.
+- Next: find the type of the argument through a caller or a vtable of the class.
+
+## F-0119 Constructors that clear 11 to 21 dwords match with memset, and one that clears 256 dwords with a loop
+- Status: confirmed
+- Addresses: 0x001430C0, 0x001893F0, 0x001B0010, 0x0019A3D0
+- Checked: the matcher's compiles in the worktree of night batch 4, and the reviewer's compile of the loop form of 0x001B0010 in a copy (2026-11-24)
+- Evidence: `memset(this, 0, sizeof(*this))` gives `xor eax,eax; mov ecx,N; mov edi,edx; rep stosd; mov eax,edx` and matches 0x001430C0 (21 dwords), 0x001893F0 (15) and 0x001B0010 (11). A `for` loop that clears the members is unrolled at these sizes: the reviewer got 2.6% for 0x001B0010 (39 bytes against 32), and the matcher reports 1.4% to 2.6% for the other two. 0x0019A3D0 (256 dwords) matches with the `for` loop; `memset` was not tried there.
+- Revisit when: a constructor that clears between 22 and 255 dwords is matched.
+
+## F-0120 0x001DADA0 and 0x001E42B0 read members at negative offsets from this and are parked as source shape
+- Status: open
+- Addresses: 0x001DADA0, 0x001E42B0, 0x001E4230, 0x001E42A0, 0x002F3D28, 0x002F3D44
+- Checked: ghidra-mcp disassemble_function and get_xrefs_to by the reviewer (2026-11-24)
+- Evidence: 0x001DADA0 is `xorps xmm0,xmm0; comiss xmm0,[ecx-0x51C]; jbe; mov al,1; ret`, and 0x001E42B0 is `mov al,[ecx-0x560]; and al,1; sub al,1; neg al; sbb eax,eax; add eax,1; ret`. The only reference to each is a jump from a `SUB ECX,[ECX-4]; JMP` thunk, 0x001E4230 and 0x001E42A0, and the thunks are referenced as data from 0x002F3D28 and 0x002F3D44. F-0087 gives this thunk shape for a class with a virtual base, where the override receives `this` as a pointer to the virtual base. The matcher's sources read the members through a cast such as `(char*)this - 0x51C` and give 100%. The reviewer failed both under S1, because the cast stands in for the class layout that VC71 generates (ADR-0013). That the negative offsets are members of the derived class seen from the virtual base is a guess from the thunk bytes and F-0087; nobody compiled a class with a virtual base for these two.
+- Next: read the vtables at 0x002F3D28 and 0x002F3D44, write the class with its virtual base, and match the two functions as overrides.
