@@ -839,9 +839,9 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 
 ## F-0121 0x001E8280 takes its argument in EAX and is parked as unclassified
 - Status: open
-- Addresses: 0x001E8280, 0x001E8270
-- Checked: ghidra-mcp disassemble_function, get_xrefs_to and read_memory at 0x001E8260 by the reviewer and the lead (2026-11-24)
-- Evidence: The function is `test eax,eax; jg; cmp eax,-3; jl; mov eax,1; ret; xor eax,eax; ret`, which is `x <= 0 && x >= -3` with `x` in EAX. Nothing in it sets EAX before the first test. Ghidra has no reference to it. 0x001E8270 is a complete function (`mov eax,[esp+4]; mov [0x003DD8B8],eax; ret`), followed by `cc` padding up to 0x001E8280, so 0x001E8280 is not its tail and not a shared return (F-0078). No VC71 calling convention that a source can name passes the first argument in EAX, so `bool f(int x)` gives 0%. The matcher parked it as `register tie` after one form; the reviewer rejected that class, because an instruction is missing, not only a register name, and the lead set it to `unclassified`.
+- Addresses: 0x001E8280, 0x001E8270, 0x0019B2A0
+- Checked: ghidra-mcp disassemble_function, get_xrefs_to and read_memory at 0x001E8260 by the reviewer and the lead (2026-11-24); ghidra-mcp disassemble_function, get_xrefs_to and read_memory and the reviewer's compiles in a scratch copy for 0x0019B2A0 in night batch 21 (2026-11-24)
+- Evidence: The function is `test eax,eax; jg; cmp eax,-3; jl; mov eax,1; ret; xor eax,eax; ret`, which is `x <= 0 && x >= -3` with `x` in EAX. Nothing in it sets EAX before the first test. Ghidra has no reference to it. 0x001E8270 is a complete function (`mov eax,[esp+4]; mov [0x003DD8B8],eax; ret`), followed by `cc` padding up to 0x001E8280, so 0x001E8280 is not its tail and not a shared return (F-0078). No VC71 calling convention that a source can name passes the first argument in EAX, so `bool f(int x)` gives 0%. The matcher parked it as `register tie` after one form; the reviewer rejected that class, because an instruction is missing, not only a register name, and the lead set it to `unclassified`. Night batch 21 parked 0x0019B2A0 as unclassified at 95.7% for the same reason. It is a linked-list search, `mov eax,[eax]; test; jz; cmp [eax],ecx; jz; mov eax,[eax+8]; test; jnz; xor al,al; ret; mov al,1; ret`, with the head in EAX and the key in ECX. `bool __fastcall f(int key, S**)` builds the same code with EDX for EAX, the only difference at +0x1; cdecl gives 9.1% and `__stdcall` 8.1%. Ghidra has no reference to it, and `cc` padding follows the `ret 4` before it.
 - Next: find a caller that sets EAX, for example through an indirect call, or learn whether the original was built with a whole-program option that changes calling conventions.
 
 ## F-0122 0x0020F4E0 matches when the member pointer is copied to a local before the null test
@@ -1025,3 +1025,10 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function on all ten by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 20 and the reviewer's compiles in a scratch copy (2026-11-24)
 - Evidence: Each ends in a plain `RET` after `mov eax,esi`. The write helpers take the value by value and call slot 5 (`call [eax+0x14]`) with its address and a size of 4, 2 or 1. The read helpers pass the pointer argument to slot 4 (`call [eax+0x10]`). `S* f(S* s, T v) { s->w(&v, n); return s; }` and `S* f(S* s, T* v) { s->r(v, n); return s; }` match all ten at 100%. 0x0012BF90 with a by-value `int` gives 47.8%, as `__stdcall` it gives 88.0% with the first difference at +0x16, and 0x0012BF50 with a `void` return gives 0.0%. Which type of each size the helpers take is a guess, because the bytes are the same.
 - Revisit when: a caller in Ghidra shows one of these as a member of the stream class.
+
+## F-0148 A range and flag test at 0x00164580 matches with if and two returns, not with one return expression
+- Status: confirmed
+- Addresses: 0x00164580
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 21 and the reviewer's compiles in a scratch copy (2026-11-24)
+- Evidence: The function is `cmp [esp+4],8; ja; cmp byte [ecx+4],0; jz; mov al,1; ret 4; xor al,al; ret 4`. `if (n <= 8 && on) return true; return false;` gives 100%. `return n <= 8 && on != 0;` gives 50.0%, with the first difference at +0x6. F-0143 records a similar result for a bit test.
+- Revisit when: a function of this shape matches only with one return expression.
