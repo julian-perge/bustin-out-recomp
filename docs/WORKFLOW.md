@@ -144,7 +144,7 @@ The user starts the run after `preflight` passes:
     tmux new -s night
     claude --permission-mode auto --settings config/overnight-settings.json
 
-Then the user pastes the prompt of `docs/research/11-overnight-prompt.md`. `config/overnight-settings.json` adds allow rules for the routine commands and deny rules for the Ghidra writes, the rebuild, the delink, a merge of the pull request, a force push and the two written forms of a push to `main`. Its lists merge with those of `.claude/settings.json`. `.claude/settings.json` gets no deny rule, so the daytime rebuild still works. A deny rule matches the command as it is written, so a push to `main` that is written another way is not blocked by it.
+Then the user pastes the prompt of `docs/research/11-overnight-prompt.md`. `config/overnight-settings.json` adds allow rules for the routine commands and deny rules for the Ghidra writes, the rebuild, the delink, a merge of the pull request, a forced link, a force push and the common written forms of a push to `main`. The rules for `sync` and `names` also match an option before the subcommand. `tests/test_overnight_settings.py` checks sample commands against the rules. Its lists merge with those of `.claude/settings.json`. `.claude/settings.json` gets no deny rule, so the daytime rebuild still works. A deny rule matches the command as it is written, so a push to `main` that is written another way is not blocked by it. The run must not set `GHIDRA_DEBUGGER_URL` or `GHIDRA_DEBUGGER_TOOLS`, because the deny list leaves out the WinDbg proxy tools of the ghidra-mcp bridge.
 
 ### Commands
 

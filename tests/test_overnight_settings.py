@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -37,6 +38,19 @@ DENY = [
     "Bash(uv run python -m bodecomp.sync apply*)",
     "Bash(uv run python -m bodecomp.names set*)",
     "Bash(uv run python -m bodecomp.libmatch*)",
+    # sync and names take options before the subcommand (sync.py, names.py), so
+    # these rules match a subcommand after any options too.
+    "Bash(uv run python -m bodecomp.sync *apply*)",
+    "Bash(uv run python -m bodecomp.names *set*)",
+    "Bash(git push *--force*)",
+    "Bash(git push * -f*)",
+    "Bash(git push *+main*)",
+    "Bash(git push *refs/heads/main*)",
+    # The links of "A matcher's worktree" name paths that differ per machine, so
+    # the allow rule stays Bash(ln -s *) and a forced link is denied.
+    "Bash(ln -s -f*)",
+    "Bash(ln -sf*)",
+    "Bash(ln -s --force*)",
 ]
 SCHEMA = {
     "tools": [
@@ -99,3 +113,105 @@ def test_the_project_settings_have_no_deny_rule_and_no_sandbox():
     settings = load(PROJECT)
     assert "deny" not in settings["permissions"]
     assert "sandbox" not in settings
+
+
+FORBIDDEN = [
+    "tools/rebuild-ghidra.sh",
+    "tools/delink.sh",
+    "tools/create-functions.sh",
+    "gh pr merge 120 --merge",
+    "uv run python -m bodecomp.sync apply",
+    "uv run python -m bodecomp.sync --accept-ghidra-names apply",
+    "uv run python -m bodecomp.names set 0x00011000 Foo src/game/a.cpp",
+    "uv run python -m bodecomp.names --symbols config/symbols.txt set 0x1 A b",
+    "uv run python -m bodecomp.libmatch",
+    "uv run python -m bodecomp.libmatch --libs tools/xdk/xbox/lib",
+    "git push --force origin match/night-2026-11-25",
+    "git push -f origin match/night-2026-11-25",
+    "git push origin match/night-2026-11-25 --force",
+    "git push origin match/night-2026-11-25 -f",
+    "git push --force-with-lease origin match/night-2026-11-25",
+    "git push origin main",
+    "git push -u origin main",
+    "git push origin HEAD:main",
+    "git push origin +main",
+    "git push origin match/night-2026-11-25:refs/heads/main",
+    "ln -sf /a /b",
+    "ln -s -f /a /b",
+    "ln -s --force /a /b",
+]
+WT = "../bustin-out-recomp-night-1"
+ROUTINE = [
+    "uv run python -m bodecomp.overnight status",
+    "uv run python -m bodecomp.match --check",
+    "uv run python -m bodecomp.match candidates 20 --min-size 17",
+    "uv run python -m bodecomp.findings check",
+    "uv run python -m bodecomp.ledger --check",
+    "uv run python -m bodecomp.names check",
+    "uv run python -m bodecomp.names stated",
+    "uv run python -m bodecomp.sync check",
+    "uv run python -m bodecomp.sync freshness",
+    "uv run pytest -q",
+    "uv run ruff check .",
+    f"git worktree add {WT} -b night/1 match/night-2026-11-25",
+    f"git worktree remove {WT}",
+    f'ln -s "$PWD/build/target" "{WT}/build/target"',
+    f'ln -s "$PWD/build/strings.tsv" "{WT}/build/strings.tsv"',
+    f'ln -s "$PWD/orig" "{WT}/orig"',
+    f'ln -s "$PWD/tools/wibo" "{WT}/tools/wibo"',
+    f'ln -s "$PWD/tools/xdk" "{WT}/tools/xdk"',
+]
+# Commands that no allow rule names, so auto mode judges them, and that no deny
+# rule may block.
+NOT_DENIED = [
+    "git push -u origin match/night-2026-11-25",
+    "git push origin match/night-2026-11-25-2",
+    "gh pr create --draft --title 'match: night run 2026-11-25'",
+    "gh pr ready match/night-2026-11-25",
+]
+
+
+def rule_matches(rule: str, command: str) -> bool:
+    """Match a command with a Bash(...) rule as Claude Code reads it.
+
+    A rule that ends in " *" matches its prefix alone or followed by a space and
+    any text. Any other * matches any text, also none.
+    """
+    body = rule.removeprefix("Bash(").removesuffix(")")
+    tail = ""
+    if body.endswith(" *"):
+        body, tail = body[:-2], "( .*)?"
+    pattern = ".*".join(re.escape(part) for part in body.split("*")) + tail
+    return re.fullmatch(pattern, command, re.DOTALL) is not None
+
+
+def bash_rules(kind: str) -> list[str]:
+    rules = load(OVERNIGHT)["permissions"][kind]
+    return [rule for rule in rules if rule.startswith("Bash(")]
+
+
+def test_the_rule_matcher_reads_wildcards():
+    assert rule_matches("Bash(ls *)", "ls")
+    assert rule_matches("Bash(ls *)", "ls -la")
+    assert not rule_matches("Bash(ls *)", "lsof")
+    assert rule_matches("Bash(git push * main)", "git push origin main")
+    assert not rule_matches("Bash(git push * main)", "git push origin main-2")
+    assert rule_matches("Bash(a*b)", "ab")
+
+
+@pytest.mark.parametrize("command", FORBIDDEN)
+def test_a_deny_rule_matches_each_forbidden_command(command):
+    assert any(rule_matches(rule, command) for rule in bash_rules("deny"))
+
+
+@pytest.mark.parametrize("command", ROUTINE)
+def test_routine_commands_are_allowed_and_not_denied(command):
+    assert any(rule_matches(rule, command) for rule in bash_rules("allow"))
+    denied = [rule for rule in bash_rules("deny") if rule_matches(rule, command)]
+    assert denied == []
+
+
+@pytest.mark.parametrize("command", NOT_DENIED)
+def test_run_branch_pushes_and_the_draft_are_not_denied(command):
+    denied = [rule for rule in bash_rules("deny") if rule_matches(rule, command)]
+    assert denied == []
