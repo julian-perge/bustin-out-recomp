@@ -358,7 +358,9 @@ def test_a_renamed_function_asks_for_sync_apply(tmp_path, monkeypatch):
         [SYMBOLS[0], replace(SYMBOLS[1], name="OtherName"), SYMBOLS[2]],
     )
     line = freshness_line(root, tmp_path)
-    assert line == ("ghidra project: names changed, run sync apply and sync check")
+    assert line == (
+        "ghidra project: names changed, run sync apply and sync check"
+    )
 
 
 def test_a_function_size_change_asks_for_sync_apply(tmp_path, monkeypatch):
@@ -368,7 +370,9 @@ def test_a_function_size_change_asks_for_sync_apply(tmp_path, monkeypatch):
         [SYMBOLS[0], replace(SYMBOLS[1], size=24), SYMBOLS[2]],
     )
     line = freshness_line(root, tmp_path)
-    assert line == ("ghidra project: names changed, run sync apply and sync check")
+    assert line == (
+        "ghidra project: names changed, run sync apply and sync check"
+    )
 
 
 def test_other_changed_lines_ask_for_sync_apply(tmp_path, monkeypatch):
@@ -378,7 +382,9 @@ def test_other_changed_lines_ask_for_sync_apply(tmp_path, monkeypatch):
         [*SYMBOLS[:2], replace(SYMBOLS[2], name="g_other")],
     )
     line = freshness_line(root, tmp_path)
-    assert line == ("ghidra project: names changed, run sync apply and sync check")
+    assert line == (
+        "ghidra project: names changed, run sync apply and sync check"
+    )
 
 
 def test_no_symbols_file_says_so(tmp_path):
