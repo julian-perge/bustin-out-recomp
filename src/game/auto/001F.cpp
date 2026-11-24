@@ -78,17 +78,24 @@ void fn_001FF900(unsigned* dst, const unsigned* src)
         *dst = *src;
 }
 
-struct S_001FB630
+struct VB_001FB630
+{
+    char pad[0xc];
+    int f;
+};
+struct Base_001FB630
 {
     char pad[0x20];
-    int* vbase;
+};
+struct S_001FB630 : Base_001FB630, virtual VB_001FB630
+{
     void fn_001FB630(int v);
 };
 
 // 0x001FB630
 void S_001FB630::fn_001FB630(int v)
 {
-    *(int*)((char*)this + vbase[1] + 0x2c) = v;
+    f = v;
 }
 
 struct S_001FE3D0
