@@ -871,3 +871,17 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: the matcher's compiles in the worktree of night batch 7 and the reviewer's compiles in a copy (2026-11-24)
 - Evidence: 0x0016ACF0 matches with `if (i <= n) return p; return 0;`, and `if (i > n) return 0; return p;` gives 73.7% with the first difference at +0x7. 0x0018E450 matches with `y += o.y; x += o.x;`, and the order with `x` first gives 52.6% with the first difference at +0x7. The reviewer compiled both other forms.
 - Revisit when: a function of these shapes matches only in the other order.
+
+## F-0126 The unit of 0x001C0A20 holds a second function at 0x001C0A30 that Ghidra has not created
+- Status: open
+- Addresses: 0x001C0A20, 0x001C0A30, 0x002F2F08, 0x002F2F0C
+- Checked: ghidra-mcp get_xrefs_to, disassemble_function and read_memory by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 8 (2026-11-24)
+- Evidence: 0x001C0A20 is 16 bytes and ends with `RET` at 0x001C0A2F. The unit goes on with `33 C0 C3` (`xor eax,eax; ret`) at 0x001C0A30, where Ghidra has no function. The vtable at 0x002F2F00 lists 0x001C0A20 at 0x002F2F08 and 0x001C0A30 at 0x002F2F0C, so 0x001C0A30 is a virtual function. The source of 0x001C0A20 gives 84.2%, the 3 bytes of 0x001C0A30 being the only difference, and the function is parked as `unclassified`, as F-0124 is.
+- Next: create a function at 0x001C0A30 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+
+## F-0127 A mask written as ~3 matches where 0xfc does not
+- Status: confirmed
+- Addresses: 0x001C2840, 0x001C2860
+- Checked: the matcher's compiles in the worktree of night batch 8 and the reviewer's compiles in a copy (2026-11-24)
+- Evidence: `((a + b + 3) & ~3) * 2 + 16` on `unsigned char` members matches both functions. With `& 0xfc` both give 0.0%, with the first difference at +0x0; the reviewer compiled that form. The matcher reports that `& 0xfc` gives `and eax,0xfc` and `& ~3` gives `movzx` and `and al,0xfc`; the reviewer did not read the instructions.
+- Revisit when: a function of this shape matches only with `0xfc`.
