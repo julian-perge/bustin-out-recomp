@@ -856,7 +856,7 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Addresses: 0x0010BBE0, 0x0010BD6D, 0x0010BFA6, 0x0010C55E, 0x0004A920
 - Checked: ghidra-mcp disassemble_function and search_instructions by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 6 (2026-11-24)
 - Evidence: The function is `mov eax,[esp+4]; mov dword [eax],0; dec dword [ecx+0x4500]; ret 4`, with the `dec` bytes `ff 89 00 45 00 00`. The matcher reports that VC71 at the default flags gives `add dword [ecx+0x4500],-1` for `--n`, `n--`, `n -= 1`, `n = n - 1`, an unsigned member, an inline `Dec()` of a member struct and `(*p)--`, each at 70% with the first difference at +0xA. The reviewer did not compile them. Ghidra has the same `dec` on a member at 0x0010BD6D and 0x0010BFA6 (`[reg+0x10C]`) and at 0x0010C55E (`[ebx+0x4500]`, the same member). At the default flags 0x0004A920 matches with `add [mem],1` (F-0022). That this region was built with other flags is a guess; nobody compiled it at other flags.
-- Next: compile 0x0010BBE0 in a scratch directory at `/G6`, `/Os` and `/Ox`, compare the bytes, and record the result next to F-0018.
+- Next: compile 0x0010BBE0 in a scratch directory at `/G6`, `/Os` and `/Ox`, compare the bytes, and record the result next to F-0018. Night batch 10 found the same kind of difference in 0x0010B770: the original ends in `inc eax` and the build gives `add eax,1` (F-0128).
 
 ## F-0124 The unit of 0x001637E0 holds a second function at 0x001637F0 that Ghidra has not created
 - Status: open
@@ -885,3 +885,17 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: the matcher's compiles in the worktree of night batch 8 and the reviewer's compiles in a copy (2026-11-24)
 - Evidence: `((a + b + 3) & ~3) * 2 + 16` on `unsigned char` members matches both functions. With `& 0xfc` both give 0.0%, with the first difference at +0x0; the reviewer compiled that form. The matcher reports that `& 0xfc` gives `and eax,0xfc` and `& ~3` gives `movzx` and `and al,0xfc`; the reviewer did not read the instructions.
 - Revisit when: a function of this shape matches only with `0xfc`.
+
+## F-0128 The unit of 0x0010B770 holds a second function at 0x0010B780 that Ghidra has not created
+- Status: open
+- Addresses: 0x0010B770, 0x0010B780
+- Checked: ghidra-mcp disassemble_function, read_memory and get_xrefs_to by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 10 (2026-11-24)
+- Evidence: 0x0010B770 is `mov eax,[ecx]; and eax,0x7fff; sub eax,3; neg eax; sbb eax,eax; inc eax; ret` and ends at 0x0010B77F. The unit goes on with `8b 41 4c c3` (`mov eax,[ecx+0x4c]; ret`) at 0x0010B780, where Ghidra has no function and no reference. The best source, `!((v & 0x7fff) - 3)` as `int`, gives 70%: it lacks those 4 bytes and has `add eax,1` for `inc eax`, the difference of F-0123. The matcher reports 35% for `== 3` as `bool` and 45% for an if-return. The function is parked as `unclassified`, as F-0124 and F-0126 are.
+- Next: create a function at 0x0010B780 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+
+## F-0129 0x0018E580 calls a virtual function of a virtual base and is parked as unclassified at 4.8%
+- Status: open
+- Addresses: 0x0018E580
+- Checked: ghidra-mcp disassemble_function, force_decompile and get_xrefs_to by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 10 (2026-11-24)
+- Evidence: The function is `test ecx,ecx; jz; mov eax,[ecx]; mov edx,[eax+0xc]; mov eax,[ecx+edx]; add ecx,edx; jmp [eax+0x2c]; xor eax,eax; ret`: when `this` is not null, it calls slot 11 of the third virtual base, found through the vbtable entry at +0xc. Ghidra has no reference to it. The matcher reports 4.8% for a class with three virtual bases and `this ? C::c11() : 0`, which VC71 compiles as a direct call, and 0% for a free function. An unqualified virtual call was not tried.
+- Next: try `c11()` as an unqualified virtual call through the virtual base, and look for the vtable that holds 0x0018E580.
