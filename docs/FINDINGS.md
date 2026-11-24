@@ -916,9 +916,9 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 
 ## F-0132 A constant-size zeroing of a member array matches 0x001E75C0 only through memset
 - Status: open
-- Addresses: 0x001E75C0
-- Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24)
-- Evidence: `memset(v, 0, sizeof(v))` on the member array at `this->v[0x50]`, with `extern "C" void* __cdecl memset(void*, int, unsigned int);` declared in the source, matches at 100%. The matcher reports that plain loops build 18 bytes and that `#include <string.h>` fails with C1034, because the build has no include path. The reviewer did not compile the other forms.
+- Addresses: 0x001E75C0, 0x00033610
+- Checked: the matcher's compiles in the worktree of night batch 11 (2026-11-24); ghidra-mcp disassemble_function and the reviewer's compiles in a scratch copy for 0x00033610 in night batch 18 (2026-11-24)
+- Evidence: `memset(v, 0, sizeof(v))` on the member array at `this->v[0x50]`, with `extern "C" void* __cdecl memset(void*, int, unsigned int);` declared in the source, matches at 100%. The matcher reports that plain loops build 18 bytes and that `#include <string.h>` fails with C1034, because the build has no include path. The reviewer did not compile the other forms. Night batch 18 found the same pattern at 0x00033610: `mov edx,ecx; push edi; mov ecx,0x10; xor eax,eax; lea edi,[edx+4]; mov [edx],0; rep stosd; pop edi; ret`. `n = 0; memset(items, 0, sizeof(items));` with `memset` declared in the source matches at 100%. The reviewer compiled the loop form `n = 0; for (i < 16) items[i] = 0;` (5.1%, 59 bytes built against 32) and the loop before `n = 0` (0.0%, 53 bytes). The loop forms of 0x001E75C0 itself are still compiled only by the matcher.
 - Next: a reviewer compiles the plain-loop forms and compares the bytes (F-0077); set the entry to confirmed if they do not match.
 
 ## F-0133 A virtual forwarder matches 0x001AEF90 only when it returns the callee's value
@@ -986,9 +986,9 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 
 ## F-0142 Three two-pointer copies match only when they return this
 - Status: confirmed
-- Addresses: 0x001F2960, 0x001F2A60, 0x001F2C50
-- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the reviewer's compile in a scratch copy for 0x001F2960 (2026-11-24)
-- Evidence: Each function is `mov eax,ecx; mov ecx,[esp+4]; mov edx,[ecx]; mov ecx,[esp+8]; mov [eax],edx; mov edx,[ecx]; mov [eax+4],edx; ret 8`. `a = *p; b = *q; return this;` matches all three at 100%. The `void` form with the same stores gives 13.6% for 0x001F2960, with the first difference at +0x1 and 20 bytes built against 22. The other two have the same bytes, and the reviewer did not compile them separately.
+- Addresses: 0x001F2960, 0x001F2A60, 0x001F2C50, 0x001FF190, 0x001FF8C0, 0x001FF8E0, 0x00200720, 0x00205DE0, 0x001FF170, 0x001FF1C0, 0x001FF360
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the reviewer's compile in a scratch copy for 0x001F2960 (2026-11-24); ghidra-mcp disassemble_function and the reviewer's compile of the `void` form of 0x001FF8C0 in night batch 18 (2026-11-24)
+- Evidence: Each function is `mov eax,ecx; mov ecx,[esp+4]; mov edx,[ecx]; mov ecx,[esp+8]; mov [eax],edx; mov edx,[ecx]; mov [eax+4],edx; ret 8`. `a = *p; b = *q; return this;` matches all three at 100%. The `void` form with the same stores gives 13.6% for 0x001F2960, with the first difference at +0x1 and 20 bytes built against 22. The other two have the same bytes, and the reviewer did not compile them separately. Night batch 18 matched eight more with `return this;`: 0x001FF170, 0x001FF1C0 and 0x001FF360 copy two ints, and 0x001FF190, 0x001FF8C0, 0x001FF8E0, 0x00200720 and 0x00205DE0 copy an int and then a byte (`mov dl,[ecx]; mov [eax+4],dl`). The `void` form of 0x001FF8C0 gives 13.6%, with the first difference at +0x1; the reviewer compiled it and no other `void` form.
 - Revisit when: a function of this shape matches with a `void` return.
 
 ## F-0143 A bit-test getter at 0x001EAA90 matches with `? true : false` and not with `!= 0`
@@ -1004,3 +1004,10 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function by the reviewer; the reviewer's compile in a scratch copy (2026-11-24)
 - Evidence: The function is `mov edx,[ecx+0x404]; mov eax,[esp+4]; mov [eax+0x30],edx; mov [ecx+0x404],eax; ret 4`, a push onto the head of a linked list. The kept source, with `int` members and `head = (int)p;`, gives 100%, and so does the form with `N* next; N* head; head = p;`.
 - Revisit when: a caller shows the node type; then the pointer form is the better source.
+
+## F-0145 The unit of 0x000335C0 holds a second function at 0x000335D0 that Ghidra has not created
+- Status: open
+- Addresses: 0x000335C0, 0x000335D0
+- Checked: ghidra-mcp disassemble_function and get_xrefs_to by the matcher, and read_memory, disassemble_function and get_xrefs_to by the reviewer of night batch 18 (2026-11-24)
+- Evidence: 0x000335C0 is 16 bytes, `mov eax,[ecx]; mov edx,[esp+4]; mov [ecx+eax*4+4],edx; add dword [ecx],1; ret 4`. The unit goes on with `83 39 00 0F 95 C0 C3` (`cmp dword [ecx],0; setnz al; ret`) at 0x000335D0. Ghidra has no function there and no reference to either address. A second method with the address comment 0x000335D0 gives "no target unit starts here". The source builds 16 of the 23 bytes, 69.6%, and the function is parked as `unclassified`, as F-0138 is.
+- Next: create a function at 0x000335D0, as issue #94 did for F-0124, then match 0x000335C0 and the new function.
