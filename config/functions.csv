@@ -2953,7 +2953,7 @@ address,status,source,score,detail
 0x001D9F40,matched,src/game/trivial/001D.cpp,100.0,
 0x001DA850,matched,src/game/trivial/001D.cpp,100.0,
 0x001DA860,matched,src/game/trivial/001D.cpp,100.0,
-0x001DA8A0,matched,src/game/auto/001DA8A0.cpp,100.0,
+0x001DA8A0,parked,src/game/auto/001DA8A0.cpp,100.0,source shape
 0x001DAB40,matched,src/game/trivial/001D.cpp,100.0,
 0x001DACD0,parked,src/game/auto/001DACD0.cpp,81.8,source shape
 0x001DADA0,parked,src/game/auto/001DADA0.cpp,100.0,source shape
