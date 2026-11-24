@@ -1965,7 +1965,7 @@ address,status,source,score,detail
 0x00163780,matched,src/game/trivial/0016.cpp,100.0,
 0x00163790,matched,src/game/auto/00163790.cpp,100.0,
 0x001637D0,matched,src/game/trivial/0016.cpp,100.0,
-0x001637E0,nonmatching,src/game/auto/001637E0.cpp,15.8,"first difference at +0x3, target 19 bytes, built 3 bytes"
+0x001637E0,parked,src/game/auto/001637E0.cpp,15.8,unclassified
 0x00163800,matched,src/game/trivial/0016.cpp,100.0,
 0x00163890,matched,src/game/trivial/0016.cpp,100.0,
 0x001638A0,matched,src/game/trivial/0016.cpp,100.0,
