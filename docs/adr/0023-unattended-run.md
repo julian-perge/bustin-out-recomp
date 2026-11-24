@@ -23,6 +23,6 @@ The second night run (#97) used a prompt and no repo support. It ran 16 batches 
 ## Consequences
 
 - `docs/WORKFLOW.md` gets the section "An unattended run". `docs/agents/workflow.md` line 5, `docs/METHODOLOGY.md` ("The merge gate") and `AGENTS.md` ("Commands") point to it.
-- `AGENTS.md` ("Working rules") does not change. The run pushes a feature branch and opens a pull request, which that rule already allows. A push to `main` still needs the user's OK, and `config/overnight-settings.json` denies the two written forms of it.
+- `AGENTS.md` ("Working rules") does not change. The run pushes a feature branch and opens a pull request, which that rule already allows. A push to `main` still needs the user's OK, and `config/overnight-settings.json` denies the common written forms of it.
 - A choice that the documents do not decide does not stop the run. The lead writes it as a `GUESS:` line, and a thing that only the user can do as a `USER:` line. The user reads both in the pull request in the morning.
 - The rehearsal of R10 in the design tests this ADR. Its results set the stall limit of `status`, now 30 minutes (`STALL_MINUTES` in `bodecomp/overnight.py`), and `maxTurns` of the agents. The design guessed 90 minutes for the stall limit. It is 30, because the second night run (#97) took about 9.6 minutes per batch and at most about 16.
