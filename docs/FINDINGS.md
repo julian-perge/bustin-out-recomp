@@ -857,3 +857,17 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function and search_instructions by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 6 (2026-11-24)
 - Evidence: The function is `mov eax,[esp+4]; mov dword [eax],0; dec dword [ecx+0x4500]; ret 4`, with the `dec` bytes `ff 89 00 45 00 00`. The matcher reports that VC71 at the default flags gives `add dword [ecx+0x4500],-1` for `--n`, `n--`, `n -= 1`, `n = n - 1`, an unsigned member, an inline `Dec()` of a member struct and `(*p)--`, each at 70% with the first difference at +0xA. The reviewer did not compile them. Ghidra has the same `dec` on a member at 0x0010BD6D and 0x0010BFA6 (`[reg+0x10C]`) and at 0x0010C55E (`[ebx+0x4500]`, the same member). At the default flags 0x0004A920 matches with `add [mem],1` (F-0022). That this region was built with other flags is a guess; nobody compiled it at other flags.
 - Next: compile 0x0010BBE0 in a scratch directory at `/G6`, `/Os` and `/Ox`, compare the bytes, and record the result next to F-0018.
+
+## F-0124 The unit of 0x001637E0 holds a second function at 0x001637F0 that Ghidra has not created
+- Status: open
+- Addresses: 0x001637E0, 0x001637F0, 0x00124255, 0x001F50F7
+- Checked: ghidra-mcp get_xrefs_to, find_functions and disassemble_function by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 7 (2026-11-24)
+- Evidence: The unit runs from 0x001637E0 to 0x00163800: `c2 04 00`, 13 `cc` bytes, then `c2 04 00`. Ghidra has the function 0x001637E0, a single `RET 0x4` that 0x001F50F7 calls. It has no function at 0x001637F0, which `JMP 0x001637f0` at 0x00124255 in 0x00124240 reaches after `MOV [ESP+4],EAX`. So 0x001637F0 is a real entry and not a shared return. The source of 0x001637E0 builds 3 of the 19 bytes, 15.8%, and the function is parked as `unclassified`, as the units of F-0078 and F-0108 are.
+- Next: create a function at 0x001637F0 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+
+## F-0125 Two forms of night batch 7 match only in one statement order
+- Status: confirmed
+- Addresses: 0x0016ACF0, 0x0018E450
+- Checked: the matcher's compiles in the worktree of night batch 7 and the reviewer's compiles in a copy (2026-11-24)
+- Evidence: 0x0016ACF0 matches with `if (i <= n) return p; return 0;`, and `if (i > n) return 0; return p;` gives 73.7% with the first difference at +0x7. 0x0018E450 matches with `y += o.y; x += o.x;`, and the order with `x` first gives 52.6% with the first difference at +0x7. The reviewer compiled both other forms.
+- Revisit when: a function of these shapes matches only in the other order.
