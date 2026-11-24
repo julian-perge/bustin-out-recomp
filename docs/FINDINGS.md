@@ -859,7 +859,7 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Next: compile 0x0010BBE0 in a scratch directory at `/G6`, `/Os` and `/Ox`, compare the bytes, and record the result next to F-0018. Night batch 10 found the same kind of difference in 0x0010B770: the original ends in `inc eax` and the build gives `add eax,1` (F-0128).
 
 ## F-0124 The unit of 0x001637E0 holds a second function at 0x001637F0 that Ghidra has not created
-- Status: open
+- Status: fixed (3e23c03)
 - Addresses: 0x001637E0, 0x001637F0, 0x00124255, 0x001F50F7
 - Checked: ghidra-mcp get_xrefs_to, find_functions and disassemble_function by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 7 (2026-11-24); `tools/create-functions.sh`, `sync export`, `split`, `delink.sh`, `relink` and `uv run python -m bodecomp.match` on the branch of issue #94 (2026-11-24)
 - Evidence: The unit runs from 0x001637E0 to 0x00163800: `c2 04 00`, 13 `cc` bytes, then `c2 04 00`. Ghidra has the function 0x001637E0, a single `RET 0x4` that 0x001F50F7 calls. It has no function at 0x001637F0, which `JMP 0x001637f0` at 0x00124255 in 0x00124240 reaches after `MOV [ESP+4],EAX`. So 0x001637F0 is a real entry and not a shared return. The source of 0x001637E0 builds 3 of the 19 bytes, 15.8%, and the function is parked as `unclassified`, as the units of F-0078 and F-0108 are. Issue #94 created the function 0x001637F0. After the rebuild the analysis had put it into the body of 0x00124240 as a second chunk, so only `starts` mode with the full list made it a function of its own, and 0x00124240 shrank from 32 to 29 bytes. After the new units, 0x001637E0 matches at 100%.
@@ -873,7 +873,7 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Revisit when: a function of these shapes matches only in the other order.
 
 ## F-0126 The unit of 0x001C0A20 holds a second function at 0x001C0A30 that Ghidra has not created
-- Status: open
+- Status: fixed (3e23c03)
 - Addresses: 0x001C0A20, 0x001C0A30, 0x002F2F08, 0x002F2F0C
 - Checked: ghidra-mcp get_xrefs_to, disassemble_function and read_memory by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 8 (2026-11-24); `tools/create-functions.sh`, `sync export`, `split`, `delink.sh`, `relink` and `uv run python -m bodecomp.match` on the branch of issue #94 (2026-11-24)
 - Evidence: 0x001C0A20 is 16 bytes and ends with `RET` at 0x001C0A2F. The unit goes on with `33 C0 C3` (`xor eax,eax; ret`) at 0x001C0A30, where Ghidra has no function. The vtable at 0x002F2F00 lists 0x001C0A20 at 0x002F2F08 and 0x001C0A30 at 0x002F2F0C, so 0x001C0A30 is a virtual function. The source of 0x001C0A20 gives 84.2%, the 3 bytes of 0x001C0A30 being the only difference, and the function is parked as `unclassified`, as F-0124 is. Issue #94 created the function 0x001C0A30. After the new units, 0x001C0A20 matches at 100%.
