@@ -1096,3 +1096,31 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function and read_memory by the matcher and the reviewer (2026-11-24)
 - Evidence: Ghidra shows `rep movsd` of 10 dwords and a `movsw` from 0x002E362C to the argument, with `ret 4`; the string there is 41 characters plus the NUL. `strcpy(out, "...")` with an `extern "C"` declaration matches at 100%, and `memcpy(out, lit, 42)` gives the same bytes. The source declares `strcpy` and `memset` itself, because the matcher has no include path for `<string.h>` (C1034).
 - Revisit when: not needed.
+
+## F-0158 A masked unsigned int member converts to bool at 0x00124B00 without a ternary
+- Status: confirmed
+- Addresses: 0x00124B00, 0x00124B20
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the reviewer's compiles in a scratch copy of the worktree of night batch 2 (2026-11-24)
+- Evidence: Ghidra shows `mov edx,1; shl edx,cl; test [eax+0x80],edx; setnz al; ret 4` (+0x84 for 0x00124B20). `return bits & (1 << n);` as a bool gives 100% at 0x00124B00, the same bytes as `? true : false`. `(bits & (1 << n)) != 0` gives 30.0% at 0x00124B20, the first difference at +0x6, and `!!(...)` does not match. The matcher said the ternary is required; the reviewer showed it is not. F-0156 records the same effect for a masked unsigned char.
+- Revisit when: a bool flag test elsewhere gives a different shape.
+
+## F-0159 The call at 0x000B0490 needs two virtual bases
+- Status: confirmed
+- Addresses: 0x000B0490
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the reviewer's compile in a scratch copy (2026-11-24)
+- Evidence: Ghidra shows `mov eax,[ecx+4]; mov ecx,[eax+4]; mov edx,[ecx+8]; lea ecx,[edx+eax+4]; mov eax,[ecx]; call [eax+0x1c4]`, which is slot 113 of the second virtual base. A class with `virtual V1, virtual V2` matches at 100%. With only `virtual V2` it gives 96.0%, the first difference at +0x8. F-0153 is the same function shape at another address.
+- Revisit when: the real class is known.
+
+## F-0160 Reordering the stores does not fix the scheduling parks at 0x000D67D0 and 0x000D67F0
+- Status: open
+- Addresses: 0x000D67D0, 0x000D67F0, 0x000D9AE0
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; compiles in the worktree of night batch 2 and in a scratch copy (2026-11-24)
+- Evidence: The original orders `or byte [p+0x5b],0x10`, the `movss` store at +0x54 (+0x60 pointer for the second), then `or dword [p+8],2`. VC71 puts the `movss` store last in all variants: six statement orders, a local pointer copy, bitfields, member helpers and a float temporary. The scores are 64.0% and 60.0%. 0x000D9AE0 shows the same shape with an int store. No donor score was found, so the check of F-0093 is not done.
+- Next: look for a GameCube donor of the class and score its form.
+
+## F-0161 0x0012EC50 is an inline fsin and fcos pair that sinf and cosf calls do not match
+- Status: open
+- Addresses: 0x0012EC50
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compile in the worktree of night batch 2 (2026-11-24)
+- Evidence: The original is `fld; fsin; fstp` and `fld; fsin`-style `fcos` pairs with float loads and stores. `sinf` and `cosf` compile to calls and give 2.9%. No source form without inline assembly (ADR-0013) is known that emits the x87 instructions.
+- Next: check the SDK math headers for an inline form.
