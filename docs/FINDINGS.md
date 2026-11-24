@@ -801,3 +801,17 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 2 (2026-11-24)
 - Evidence: The function is `mov al,[ecx]; mov ecx,[esp+4]; and al,[ecx]; neg al; sbb eax,eax; neg eax; ret 4`. It loads `*this` before the argument. The matcher reports that 9 forms load the argument first: the operands in both orders, `const char*` and `const S*` arguments, `char`, `unsigned char` and `bool` members, locals, a static helper, and `? :` and `if` returns. 7 give 64.7% and 2 give 0%. The reviewer did not compile them. The kept form is `(m & o->m) != 0`.
 - Next: try an inline helper of the class of the argument, as in F-0094 and F-0112, and read the callers in Ghidra to learn what the byte is.
+
+## F-0116 0x00063CB0 matches with an if-return, not with a logical or
+- Status: confirmed
+- Addresses: 0x00063CB0
+- Checked: the matcher's compiles in the worktree of night batch 3 and the reviewer's compile in a copy of it, with ghidra-mcp disassemble_function (2026-11-24)
+- Evidence: The function is `cmp [ecx+0x52c],0; mov al,1; jg; mov al,[ecx+0x564]; ret`. `return n > 0 || b;` gives 29.6%, with the first difference at +0x7; the reviewer compiled it again. `if (n > 0) return true; return b;` gives 100% in src/game/auto/0006.cpp.
+- Revisit when: a function of this shape matches only with `||`.
+
+## F-0117 0x000D9960 is parked as scheduling at 61.1%
+- Status: open
+- Addresses: 0x000D9960, 0x000D66A0, 0x000D66C0, 0x000D9AC0, 0x000D9AE0, 0x000DFAA0
+- Checked: the matcher's compiles in the worktree of night batch 3, ghidra-mcp search_instructions and disassemble_function by the matcher and the reviewer (2026-11-24)
+- Evidence: The function is `or byte [ecx+0x5b],0x10; mov [ecx+0x50],eax; or dword [ecx+8],2; ret 4`. VC71 puts `or [ecx+8],2` before the byte `or`. The matcher reports 10 forms: 9 give 61.1% (each statement order but one, a `char` flag byte, bit-fields, inline helpers with the +8 flag set last, a base-class helper, an out-of-line setter), and the order with the +8 flag first gives 44.4%. The reviewer did not compile them. A search for `or byte [reg+0x5b],0x10` finds setters with the same order: 0x000D66C0 (a float store), 0x000D9AC0 and 0x000D9AE0 (on an inner object) and 0x000DFAA0 (after a null test). 0x000D66A0 has the byte `or` and no `or [+8],2`. None of them is a shared helper.
+- Next: match one of the sibling setters to learn the shape that keeps the order.
