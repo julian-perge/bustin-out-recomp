@@ -766,3 +766,31 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: the token counts and the matched bytes in `docs/thunk-trial-results.md`, "Batches" (2026-11-15); `comm` of the `matched` rows of `config/functions.csv` at 025508c and at 6a75910, with the sizes in `config/symbols.txt` (2026-11-15); the byte shape of the units of the 57 functions, read with `bodecomp.trivial.masked`, by the review of pull request #19 (2026-11-15)
 - Evidence: The callers batch cost 32,848 tokens per matched function, 4.3 times the 7,557 of M4 batch 3, and the figure leaves out the lead's tokens. The trial matched 57 functions that were not matched before it. 13 of them have 16 bytes or fewer: 11 thunks, operator new 0x000136D0 and 0x00137AF0. So 0x00137AF0 is the only function of the 47 of F-0080 that the trial matched, and it stores a data address, not a vtable (F-0102). The maintainer ruled on 2026-11-15 that it does not count. Per matched byte, the callers batch cost 340 tokens and batch 3 cost 445. No batch of larger functions without the shared bases has a measured cost, so the lower figure can come from the larger functions alone, which is a guess. The figure also leaves out the lead's tokens. If the lead's part was more than about 181,000 tokens, the callers batch costs more per byte than batch 3 too. By the spec's Outcomes table, the outcome is "no gain".
 - Revisit when: a matcher batch of functions of about 100 bytes without the shared bases has a measured cost, or a rule says how the tokens of a lead session are measured.
+
+## F-0111 0x001C2890 is parked as source shape at 73.7%
+- Status: open
+- Addresses: 0x001C2890
+- Checked: the matcher's compiles in the worktree of night batch 1 (2026-11-24); ghidra-mcp disassemble_function by the lead (2026-11-24)
+- Evidence: The function is `MOV AX,[ECX]`, `CMP AX,0xffff`, `JNZ`, `OR AX,AX`, `RET`, then `AND AH,0x7f`, `RET`. The matcher reports that each of about 10 forms gives `and eax,0x7fff` or `and ax,0x7fff`: `unsigned short` and `short` locals, `r &= 0x7FFF`, a shift pair and casts. The reviewer did not check the count of forms. The kept form returns `v` when it is 0xFFFF and `v & 0x7FFF` otherwise. The function has an `auto` name and no known class, so no donor form was compiled.
+- Next: try a 15-bit bit-field with a 1-bit flag above it, and a byte-wise form that clears bit 7 of the high byte.
+
+## F-0112 0x001EF8E0 matches when the null test is an inline member of the pointed-to class
+- Status: open
+- Addresses: 0x001EF8E0
+- Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24)
+- Evidence: The form with an inline `Inner::get()` (`if (data) return data[-2]; return 0;`) called as `in->get()` matches at 100% in src/game/auto/001E.cpp. The matcher reports 76.5% for the form that reads `in->data` in the outer member, where the build loads `in` into EAX and the original keeps ECX, and 88.2% for a ternary inside `get()`. The reviewer did not compile those two forms (F-0077).
+- Next: compile the 76.5% and 88.2% forms and compare the bytes, then set the entry to confirmed.
+
+## F-0113 Four setters write a member of a virtual base at the vbptr offset plus the member offset
+- Status: open
+- Addresses: 0x001A6C10, 0x001B5210, 0x001D9610, 0x001F8AA0
+- Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24)
+- Evidence: The bytes are `mov eax,[ecx+0x20]; mov edx,[eax+4]; mov eax,[esp+4]; mov [edx+ecx+K],eax; ret 4`, with K = 0x24, 0x30, 0x28 and 0x34. A class with a 0x20-byte non-virtual base and one virtual base matches all four at 100%, with the member at K - 0x20 in the virtual base: 4, 0x10, 8 and 0x14. The matcher reports 94.1% for the form with K as the member offset. The reviewer did not compile that form (F-0077).
+- Next: compile the form with K as the member offset and compare the bytes, then set the entry to confirmed.
+
+## F-0114 The string length loop of 0x001A4FD0 matches with an end pointer taken before the loop
+- Status: open
+- Addresses: 0x001A4FD0
+- Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24)
+- Evidence: `const char* p = s; const char* e = p + 1; char c; do c = *p++; while (c); return p - e;` matches at 100% in src/game/auto/001A.cpp. The matcher reports 5.3% for `while (*p++);` with `return p - s - 1`. The reviewer did not compile that form (F-0077).
+- Next: compile the `while (*p++)` form and compare the bytes, then set the entry to confirmed.
