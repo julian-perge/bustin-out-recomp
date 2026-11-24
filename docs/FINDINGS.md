@@ -861,9 +861,9 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 ## F-0124 The unit of 0x001637E0 holds a second function at 0x001637F0 that Ghidra has not created
 - Status: open
 - Addresses: 0x001637E0, 0x001637F0, 0x00124255, 0x001F50F7
-- Checked: ghidra-mcp get_xrefs_to, find_functions and disassemble_function by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 7 (2026-11-24)
-- Evidence: The unit runs from 0x001637E0 to 0x00163800: `c2 04 00`, 13 `cc` bytes, then `c2 04 00`. Ghidra has the function 0x001637E0, a single `RET 0x4` that 0x001F50F7 calls. It has no function at 0x001637F0, which `JMP 0x001637f0` at 0x00124255 in 0x00124240 reaches after `MOV [ESP+4],EAX`. So 0x001637F0 is a real entry and not a shared return. The source of 0x001637E0 builds 3 of the 19 bytes, 15.8%, and the function is parked as `unclassified`, as the units of F-0078 and F-0108 are.
-- Next: create a function at 0x001637F0 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+- Checked: ghidra-mcp get_xrefs_to, find_functions and disassemble_function by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 7 (2026-11-24); `tools/create-functions.sh`, `sync export`, `split`, `delink.sh`, `relink` and `uv run python -m bodecomp.match` on the branch of issue #94 (2026-11-24)
+- Evidence: The unit runs from 0x001637E0 to 0x00163800: `c2 04 00`, 13 `cc` bytes, then `c2 04 00`. Ghidra has the function 0x001637E0, a single `RET 0x4` that 0x001F50F7 calls. It has no function at 0x001637F0, which `JMP 0x001637f0` at 0x00124255 in 0x00124240 reaches after `MOV [ESP+4],EAX`. So 0x001637F0 is a real entry and not a shared return. The source of 0x001637E0 builds 3 of the 19 bytes, 15.8%, and the function is parked as `unclassified`, as the units of F-0078 and F-0108 are. Issue #94 created the function 0x001637F0. After the rebuild the analysis had put it into the body of 0x00124240 as a second chunk, so only `starts` mode with the full list made it a function of its own, and 0x00124240 shrank from 32 to 29 bytes. After the new units, 0x001637E0 matches at 100%.
+- Revisit when: a later rebuild puts 0x001637F0 back into the body of 0x00124240.
 
 ## F-0125 Two forms of night batch 7 match only in one statement order
 - Status: confirmed
@@ -875,9 +875,9 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 ## F-0126 The unit of 0x001C0A20 holds a second function at 0x001C0A30 that Ghidra has not created
 - Status: open
 - Addresses: 0x001C0A20, 0x001C0A30, 0x002F2F08, 0x002F2F0C
-- Checked: ghidra-mcp get_xrefs_to, disassemble_function and read_memory by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 8 (2026-11-24)
-- Evidence: 0x001C0A20 is 16 bytes and ends with `RET` at 0x001C0A2F. The unit goes on with `33 C0 C3` (`xor eax,eax; ret`) at 0x001C0A30, where Ghidra has no function. The vtable at 0x002F2F00 lists 0x001C0A20 at 0x002F2F08 and 0x001C0A30 at 0x002F2F0C, so 0x001C0A30 is a virtual function. The source of 0x001C0A20 gives 84.2%, the 3 bytes of 0x001C0A30 being the only difference, and the function is parked as `unclassified`, as F-0124 is.
-- Next: create a function at 0x001C0A30 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+- Checked: ghidra-mcp get_xrefs_to, disassemble_function and read_memory by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 8 (2026-11-24); `tools/create-functions.sh`, `sync export`, `split`, `delink.sh`, `relink` and `uv run python -m bodecomp.match` on the branch of issue #94 (2026-11-24)
+- Evidence: 0x001C0A20 is 16 bytes and ends with `RET` at 0x001C0A2F. The unit goes on with `33 C0 C3` (`xor eax,eax; ret`) at 0x001C0A30, where Ghidra has no function. The vtable at 0x002F2F00 lists 0x001C0A20 at 0x002F2F08 and 0x001C0A30 at 0x002F2F0C, so 0x001C0A30 is a virtual function. The source of 0x001C0A20 gives 84.2%, the 3 bytes of 0x001C0A30 being the only difference, and the function is parked as `unclassified`, as F-0124 is. Issue #94 created the function 0x001C0A30. After the new units, 0x001C0A20 matches at 100%.
+- Revisit when: a later rebuild drops the function 0x001C0A30.
 
 ## F-0127 A mask written as ~3 matches where 0xfc does not
 - Status: confirmed
@@ -889,9 +889,9 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 ## F-0128 The unit of 0x0010B770 holds a second function at 0x0010B780 that Ghidra has not created
 - Status: open
 - Addresses: 0x0010B770, 0x0010B780
-- Checked: ghidra-mcp disassemble_function, read_memory and get_xrefs_to by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 10 (2026-11-24)
-- Evidence: 0x0010B770 is `mov eax,[ecx]; and eax,0x7fff; sub eax,3; neg eax; sbb eax,eax; inc eax; ret` and ends at 0x0010B77F. The unit goes on with `8b 41 4c c3` (`mov eax,[ecx+0x4c]; ret`) at 0x0010B780, where Ghidra has no function and no reference. The best source, `!((v & 0x7fff) - 3)` as `int`, gives 70%: it lacks those 4 bytes and has `add eax,1` for `inc eax`, the difference of F-0123. The matcher reports 35% for `== 3` as `bool` and 45% for an if-return. The function is parked as `unclassified`, as F-0124 and F-0126 are.
-- Next: create a function at 0x0010B780 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+- Checked: ghidra-mcp disassemble_function, read_memory and get_xrefs_to by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 10 (2026-11-24); `tools/create-functions.sh`, `sync export`, `split`, `delink.sh`, `relink` and `uv run python -m bodecomp.match` on the branch of issue #94 (2026-11-24)
+- Evidence: 0x0010B770 is `mov eax,[ecx]; and eax,0x7fff; sub eax,3; neg eax; sbb eax,eax; inc eax; ret` and ends at 0x0010B77F. The unit goes on with `8b 41 4c c3` (`mov eax,[ecx+0x4c]; ret`) at 0x0010B780, where Ghidra has no function and no reference. The best source, `!((v & 0x7fff) - 3)` as `int`, gives 70%: it lacks those 4 bytes and has `add eax,1` for `inc eax`, the difference of F-0123. The matcher reports 35% for `== 3` as `bool` and 45% for an if-return. The function is parked as `unclassified`, as F-0124 and F-0126 are. Issue #94 created the function 0x0010B780, so the unit of 0x0010B770 is now 16 bytes. The kept form gives 77.8%: the only difference left is `add eax,1` in the build against `inc eax` in the original (first difference at +0xE, 18 bytes built against 16), as in F-0123. `(v & 0x7fff) == 3` as `int` and as `bool` give 38.9%. The function stays parked as `unclassified`.
+- Next: settle F-0123 (a build at other flags), then match 0x0010B770 and the new 0x0010B780.
 
 ## F-0129 0x0018E580 calls a virtual function of a virtual base and is parked as unclassified at 4.8%
 - Status: open

@@ -12,7 +12,6 @@ struct S_001C0A20 {
 
 // The unit holds 3 trailing bytes (33 C0 C3, LAB_001c0a30) after the function; their start is missing (F-0124).
 // 0x001C0A20
-// parked: unclassified
 short S_001C0A20::FUN_001c0a20()
 {
     if (p)

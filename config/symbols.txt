@@ -3329,7 +3329,7 @@ address	kind	size	name	tier	evidence
 0x0009B450	function	1576	HandleBuildMenuMessage	string	string:0x002E6E20,0x002E6E0C
 0x0009BAB0	function	108	FUN_0009bab0	auto	
 0x0009BB20	function	2922	FUN_0009bb20	auto	
-0x0009C6B0	function	9114	FUN_0009c6b0	auto	
+0x0009C6B0	function	9207	FUN_0009c6b0	auto	
 0x0009EAB0	function	2674	UpdateBuildMenu	string	string:0x002E6DC8,0x002E6E0C
 0x0009F540	function	224	FUN_0009f540	auto	
 0x0009F620	function	30	FUN_0009f620	auto	
@@ -6215,6 +6215,7 @@ address	kind	size	name	tier	evidence
 0x0010B520	function	132	FUN_0010b520	auto	
 0x0010B5B0	function	424	FUN_0010b5b0	auto	
 0x0010B770	function	16	FUN_0010b770	auto	
+0x0010B780	function	4	FUN_0010b780	auto	
 0x0010B790	function	6	FUN_0010b790	auto	
 0x0010B7A0	function	6	FUN_0010b7a0	auto	
 0x0010B7B0	function	189	ExpandSkuMacro	string	string:0x002EBA6C
@@ -6956,7 +6957,7 @@ address	kind	size	name	tier	evidence
 0x00124210	function	8	FUN_00124210	auto	
 0x00124220	function	8	FUN_00124220	auto	
 0x00124230	function	8	FUN_00124230	auto	
-0x00124240	function	32	FUN_00124240	auto	
+0x00124240	function	29	FUN_00124240	auto	
 0x00124260	function	13	FUN_00124260	auto	
 0x00124270	function	19	FUN_00124270	auto	
 0x00124290	function	35	FUN_00124290	auto	
@@ -9401,6 +9402,7 @@ address	kind	size	name	tier	evidence
 0x001637C0	function	5	FUN_001637c0	auto	
 0x001637D0	function	1	FUN_001637d0	auto	
 0x001637E0	function	3	FUN_001637e0	auto	
+0x001637F0	function	3	FUN_001637f0	auto	
 0x00163800	function	3	FUN_00163800	auto	
 0x00163810	function	4	FUN_00163810	auto	
 0x00163820	function	13	FUN_00163820	auto	
@@ -10114,7 +10116,7 @@ address	kind	size	name	tier	evidence
 0x001744B0	function	310	AllocXBoxTextureBuffer	string	string:0x002EF7F4,0x002EF830,0x002EF844
 0x001745F0	function	187	GetXBoxTexturePalette	string	string:0x002EF85C
 0x001746B0	function	305	FUN_001746b0	auto	
-0x001747F0	function	380	AllocXBoxTextureData	string	string:0x002EF870,0x002EF884
+0x001747F0	function	384	AllocXBoxTextureData	string	string:0x002EF870,0x002EF884
 0x00174A30	function	188	FUN_00174a30	auto	
 0x00174AF0	function	32	FUN_00174af0	auto	
 0x00174B10	function	158	FUN_00174b10	auto	
@@ -13706,6 +13708,7 @@ address	kind	size	name	tier	evidence
 0x001C0A00	function	5	FUN_001c0a00	auto	
 0x001C0A10	function	3	FUN_001c0a10	auto	
 0x001C0A20	function	16	FUN_001c0a20	auto	
+0x001C0A30	function	3	FUN_001c0a30	auto	
 0x001C0A40	function	1	FUN_001c0a40	auto	
 0x001C0A50	function	1	FUN_001c0a50	auto	
 0x001C0A60	function	7	FUN_001c0a60	auto	

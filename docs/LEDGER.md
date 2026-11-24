@@ -12,9 +12,9 @@ Bytes are function sizes from Ghidra; code outside every function (F-0026) is no
 | `sdk-other` | SDK function named by the XBE loader or Ghidra Function ID | 150 | 0.7% | 29,158 | 1.2% |
 | `matched` | game function whose C++ compiles to its original bytes | 2 | 0.0% | 21 | 0.0% |
 | `gc` | game function named from the GameCube symbols, with two kinds of evidence | 0 | 0.0% | 0 | 0.0% |
-| `string` | game function named from its own strings | 497 | 2.3% | 253,040 | 10.7% |
-| `open` | game function with Ghidra's automatic name | 18,396 | 84.6% | 1,692,584 | 71.9% |
-| **all** | | **21,734** | | **2,354,349** | |
+| `string` | game function named from its own strings | 497 | 2.3% | 253,044 | 10.7% |
+| `open` | game function with Ghidra's automatic name | 18,399 | 84.6% | 1,692,684 | 71.9% |
+| **all** | | **21,737** | | **2,354,453** | |
 
 Data labels in `symbols.txt`: 210 (not counted above).
 
@@ -24,11 +24,11 @@ Data labels in `symbols.txt`: 210 (not counted above).
 |---|---:|---:|---:|---:|
 | `matched` | 2 | 0.0% | 21 | 0.0% |
 | `gc` | 0 | 0.0% | 0 | 0.0% |
-| `string` | 497 | 2.6% | 253,040 | 13.0% |
-| `auto` | 18,396 | 97.4% | 1,692,584 | 87.0% |
-| **all game** | **18,895** | | **1,945,645** | |
+| `string` | 497 | 2.6% | 253,044 | 13.0% |
+| `auto` | 18,399 | 97.4% | 1,692,684 | 87.0% |
+| **all game** | **18,898** | | **1,945,749** | |
 
-Named game functions: 499 of 18,895 (2.6%).
+Named game functions: 499 of 18,898 (2.6%).
 
 ## Game functions by match status
 
@@ -36,8 +36,8 @@ A matched function keeps its `auto` name when its source uses placeholder names 
 
 | Status | Functions | Share | Bytes | Share |
 |---|---:|---:|---:|---:|
-| `matched` | 3,552 | 18.8% | 26,186 | 1.3% |
+| `matched` | 3,554 | 18.8% | 26,205 | 1.3% |
 | `nonmatching` | 0 | 0.0% | 0 | 0.0% |
-| `parked` | 19 | 0.1% | 806 | 0.0% |
+| `parked` | 17 | 0.1% | 787 | 0.0% |
 | `error` | 0 | 0.0% | 0 | 0.0% |
-| `open` | 15,324 | 81.1% | 1,918,653 | 98.6% |
+| `open` | 15,327 | 81.1% | 1,918,757 | 98.6% |

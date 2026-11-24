@@ -1366,7 +1366,7 @@ address,status,source,score,detail
 0x0010A630,matched,src/game/trivial/0010.cpp,100.0,
 0x0010A6F0,matched,src/game/auto/0010.cpp,100.0,
 0x0010AB80,matched,src/game/trivial/0010.cpp,100.0,
-0x0010B770,parked,src/game/auto/0010B770.cpp,70.0,unclassified
+0x0010B770,parked,src/game/auto/0010B770.cpp,77.8,unclassified
 0x0010B790,matched,src/game/trivial/0010.cpp,100.0,
 0x0010B7A0,matched,src/game/trivial/0010.cpp,100.0,
 0x0010B8C0,matched,src/game/trivial/0010.cpp,100.0,
@@ -1981,7 +1981,7 @@ address,status,source,score,detail
 0x00163780,matched,src/game/trivial/0016.cpp,100.0,
 0x00163790,matched,src/game/auto/00163790.cpp,100.0,
 0x001637D0,matched,src/game/trivial/0016.cpp,100.0,
-0x001637E0,parked,src/game/auto/001637E0.cpp,15.8,unclassified
+0x001637E0,matched,src/game/auto/001637E0.cpp,100.0,
 0x00163800,matched,src/game/trivial/0016.cpp,100.0,
 0x00163890,matched,src/game/trivial/0016.cpp,100.0,
 0x001638A0,matched,src/game/trivial/0016.cpp,100.0,
@@ -2736,7 +2736,7 @@ address,status,source,score,detail
 0x001C0930,matched,src/game/trivial/001C.cpp,100.0,
 0x001C0950,matched,src/game/trivial/001C.cpp,100.0,
 0x001C0A10,matched,src/game/trivial/001C.cpp,100.0,
-0x001C0A20,parked,src/game/auto/001C0A20.cpp,84.2,unclassified
+0x001C0A20,matched,src/game/auto/001C0A20.cpp,100.0,
 0x001C0A40,matched,src/game/trivial/001C.cpp,100.0,
 0x001C0A50,matched,src/game/trivial/001C.cpp,100.0,
 0x001C0A60,matched,src/game/trivial/001C.cpp,100.0,
