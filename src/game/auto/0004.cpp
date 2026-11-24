@@ -47,3 +47,57 @@ void S_0004D250::fn_0004D250(int a)
     if (sub)
         sub->v2(a);
 }
+
+struct S_00040BA0
+{
+    int a;
+    bool fn_00040BA0(const S_00040BA0* o);
+};
+// 0x00040BA0
+bool S_00040BA0::fn_00040BA0(const S_00040BA0* o)
+{
+    return a != o->a;
+}
+
+struct S_00048CC0
+{
+    int a;
+    int b;
+    S_00048CC0* fn_00048CC0(int x, int y);
+};
+// 0x00048CC0
+S_00048CC0* S_00048CC0::fn_00048CC0(int x, int y)
+{
+    a = x;
+    b = y;
+    return this;
+}
+
+struct S_00040AF0
+{
+    float x;
+    float y;
+    float FUN_00040AF0(const S_00040AF0* o) const;
+};
+
+// 0x00040AF0
+float S_00040AF0::FUN_00040AF0(const S_00040AF0* o) const
+{
+    return o->y * y + o->x * x;
+}
+
+// 0x0004ACC0
+void FUN_0004ACC0(int* a, int* b)
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+
+// 0x0004B050
+void FUN_0004B050(int* a, int* b)
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}

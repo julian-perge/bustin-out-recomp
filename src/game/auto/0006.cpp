@@ -48,3 +48,19 @@ void S_0006FE70::fn_0006FE70(int x, int y)
     a = x;
     b = y;
 }
+
+struct S_00063CB0
+{
+    char pad[0x52c];
+    int n;
+    char pad2[0x564 - 0x530];
+    bool b;
+    bool fn_00063CB0();
+};
+// 0x00063CB0
+bool S_00063CB0::fn_00063CB0()
+{
+    if (n > 0)
+        return true;
+    return b;
+}

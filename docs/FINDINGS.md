@@ -766,3 +766,136 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: the token counts and the matched bytes in `docs/thunk-trial-results.md`, "Batches" (2026-11-15); `comm` of the `matched` rows of `config/functions.csv` at 025508c and at 6a75910, with the sizes in `config/symbols.txt` (2026-11-15); the byte shape of the units of the 57 functions, read with `bodecomp.trivial.masked`, by the review of pull request #19 (2026-11-15)
 - Evidence: The callers batch cost 32,848 tokens per matched function, 4.3 times the 7,557 of M4 batch 3, and the figure leaves out the lead's tokens. The trial matched 57 functions that were not matched before it. 13 of them have 16 bytes or fewer: 11 thunks, operator new 0x000136D0 and 0x00137AF0. So 0x00137AF0 is the only function of the 47 of F-0080 that the trial matched, and it stores a data address, not a vtable (F-0102). The maintainer ruled on 2026-11-15 that it does not count. Per matched byte, the callers batch cost 340 tokens and batch 3 cost 445. No batch of larger functions without the shared bases has a measured cost, so the lower figure can come from the larger functions alone, which is a guess. The figure also leaves out the lead's tokens. If the lead's part was more than about 181,000 tokens, the callers batch costs more per byte than batch 3 too. By the spec's Outcomes table, the outcome is "no gain".
 - Revisit when: a matcher batch of functions of about 100 bytes without the shared bases has a measured cost, or a rule says how the tokens of a lead session are measured.
+
+## F-0111 0x001C2890 is parked as source shape at 73.7%
+- Status: open
+- Addresses: 0x001C2890
+- Checked: the matcher's compiles in the worktree of night batch 1 (2026-11-24); ghidra-mcp disassemble_function by the lead (2026-11-24)
+- Evidence: The function is `MOV AX,[ECX]`, `CMP AX,0xffff`, `JNZ`, `OR AX,AX`, `RET`, then `AND AH,0x7f`, `RET`. The matcher reports that each of about 10 forms gives `and eax,0x7fff` or `and ax,0x7fff`: `unsigned short` and `short` locals, `r &= 0x7FFF`, a shift pair and casts. The reviewer did not check the count of forms. The kept form returns `v` when it is 0xFFFF and `v & 0x7FFF` otherwise. The function has an `auto` name and no known class, so no donor form was compiled.
+- Next: try a 15-bit bit-field with a 1-bit flag above it, and a byte-wise form that clears bit 7 of the high byte.
+
+## F-0112 0x001EF8E0 and 0x0020FD40 match when the null test is an inline member of the pointed-to class
+- Status: confirmed
+- Addresses: 0x001EF8E0, 0x0020FD40
+- Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24); the reviewer's compiles of three other forms of 0x0020FD40 in a copy of the worktree of night batch 2, and ghidra-mcp disassemble_function (2026-11-24)
+- Evidence: The form with an inline `Inner::get()` (`if (data) return data[-2]; return 0;`) called as `in->get()` matches at 100% in src/game/auto/001E.cpp. The matcher reports 76.5% for the form that reads `in->data` in the outer member, where the build loads `in` into EAX and the original keeps ECX, and 88.2% for a ternary inside `get()`. The reviewer of night batch 1 did not compile those two forms (F-0077). 0x0020FD40 is `mov ecx,[ecx+8]; mov eax,[ecx]; test eax,eax; jz; mov ax,[eax-4]; ret; xor eax,eax; ret`. The reviewer of night batch 2 compiled three forms that read `inner->p` in the outer member: an `if` gives 66.7%, a local gives 66.7% and a ternary gives 76.5%, each with the first difference at +0x1. An inline `Inner::size()` called as `inner->size()` gives 100%.
+- Revisit when: a function of this shape matches only with the test in the outer member.
+
+## F-0113 Four setters write a member of a virtual base at the vbptr offset plus the member offset
+- Status: open
+- Addresses: 0x001A6C10, 0x001B5210, 0x001D9610, 0x001F8AA0
+- Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24)
+- Evidence: The bytes are `mov eax,[ecx+0x20]; mov edx,[eax+4]; mov eax,[esp+4]; mov [edx+ecx+K],eax; ret 4`, with K = 0x24, 0x30, 0x28 and 0x34. A class with a 0x20-byte non-virtual base and one virtual base matches all four at 100%, with the member at K - 0x20 in the virtual base: 4, 0x10, 8 and 0x14. The matcher reports 94.1% for the form with K as the member offset. The reviewer did not compile that form (F-0077).
+- Next: compile the form with K as the member offset and compare the bytes, then set the entry to confirmed.
+
+## F-0114 The string length loop of 0x001A4FD0 matches with an end pointer taken before the loop
+- Status: open
+- Addresses: 0x001A4FD0
+- Checked: `uv run python -m bodecomp.match`, run again by the reviewer in the worktree of night batch 1 (2026-11-24)
+- Evidence: `const char* p = s; const char* e = p + 1; char c; do c = *p++; while (c); return p - e;` matches at 100% in src/game/auto/001A.cpp. The matcher reports 5.3% for `while (*p++);` with `return p - s - 1`. The reviewer did not compile that form (F-0077).
+- Next: compile the `while (*p++)` form and compare the bytes, then set the entry to confirmed.
+
+## F-0115 0x0021B4A0 is parked as source shape at 64.7%
+- Status: open
+- Addresses: 0x0021B4A0
+- Checked: ghidra-mcp disassemble_function by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 2 (2026-11-24)
+- Evidence: The function is `mov al,[ecx]; mov ecx,[esp+4]; and al,[ecx]; neg al; sbb eax,eax; neg eax; ret 4`. It loads `*this` before the argument. The matcher reports that 9 forms load the argument first: the operands in both orders, `const char*` and `const S*` arguments, `char`, `unsigned char` and `bool` members, locals, a static helper, and `? :` and `if` returns. 7 give 64.7% and 2 give 0%. The reviewer did not compile them. The kept form is `(m & o->m) != 0`.
+- Next: try an inline helper of the class of the argument, as in F-0094 and F-0112, and read the callers in Ghidra to learn what the byte is.
+
+## F-0116 0x00063CB0 matches with an if-return, not with a logical or
+- Status: confirmed
+- Addresses: 0x00063CB0
+- Checked: the matcher's compiles in the worktree of night batch 3 and the reviewer's compile in a copy of it, with ghidra-mcp disassemble_function (2026-11-24)
+- Evidence: The function is `cmp [ecx+0x52c],0; mov al,1; jg; mov al,[ecx+0x564]; ret`. `return n > 0 || b;` gives 29.6%, with the first difference at +0x7; the reviewer compiled it again. `if (n > 0) return true; return b;` gives 100% in src/game/auto/0006.cpp.
+- Revisit when: a function of this shape matches only with `||`.
+
+## F-0117 0x000D9960 is parked as scheduling at 61.1%
+- Status: open
+- Addresses: 0x000D9960, 0x000D66A0, 0x000D66C0, 0x000D9AC0, 0x000D9AE0, 0x000DFAA0
+- Checked: the matcher's compiles in the worktree of night batch 3, ghidra-mcp search_instructions and disassemble_function by the matcher and the reviewer (2026-11-24)
+- Evidence: The function is `or byte [ecx+0x5b],0x10; mov [ecx+0x50],eax; or dword [ecx+8],2; ret 4`. VC71 puts `or [ecx+8],2` before the byte `or`. The matcher reports 10 forms: 9 give 61.1% (each statement order but one, a `char` flag byte, bit-fields, inline helpers with the +8 flag set last, a base-class helper, an out-of-line setter), and the order with the +8 flag first gives 44.4%. The reviewer did not compile them. A search for `or byte [reg+0x5b],0x10` finds setters with the same order: 0x000D66C0 (a float store), 0x000D9AC0 and 0x000D9AE0 (on an inner object) and 0x000DFAA0 (after a null test). 0x000D66A0 has the byte `or` and no `or [+8],2`. None of them is a shared helper.
+- Next: match one of the sibling setters to learn the shape that keeps the order.
+
+## F-0118 0x0010A4D0 is parked as source shape at 94.4%, because only a volatile parameter matches
+- Status: open
+- Addresses: 0x0010A4D0
+- Checked: the matcher's compiles in the worktree of night batch 4, the reviewer's compile of the `unsigned` form in a copy, ghidra-mcp disassemble_function and get_xrefs_to by the reviewer (2026-11-24)
+- Evidence: The function is `mov eax,[ecx]; mov edx,[esp+4]; and eax,0xffff8000; or eax,edx; mov [ecx],eax; ret 4`. `v = (v & 0xFFFF8000) | x;` with `unsigned x` gives 11.1%, because VC71 folds the argument into `or eax,[esp+4]` (16 bytes against 18); the reviewer compiled it again. `const unsigned&` gives 94.4% and is the kept form. `volatile unsigned x` gives 100%, but the reviewer failed it under S1, because a volatile on a parameter passed by value has no other use than to steer the compiler. The matcher reports that `int`, `unsigned short`, a struct with one member passed by value, a 15 and 17 bit-field pair and a volatile member do not match. Ghidra has no reference to the function.
+- Next: find the type of the argument through a caller or a vtable of the class.
+
+## F-0119 Constructors that clear 11 to 21 dwords match with memset, and one that clears 256 dwords with a loop
+- Status: confirmed
+- Addresses: 0x001430C0, 0x001893F0, 0x001B0010, 0x0019A3D0
+- Checked: the matcher's compiles in the worktree of night batch 4, and the reviewer's compile of the loop form of 0x001B0010 in a copy (2026-11-24)
+- Evidence: `memset(this, 0, sizeof(*this))` gives `xor eax,eax; mov ecx,N; mov edi,edx; rep stosd; mov eax,edx` and matches 0x001430C0 (21 dwords), 0x001893F0 (15) and 0x001B0010 (11). A `for` loop that clears the members is unrolled at these sizes: the reviewer got 2.6% for 0x001B0010 (39 bytes against 32), and the matcher reports 1.4% to 2.6% for the other two. 0x0019A3D0 (256 dwords) matches with the `for` loop; `memset` was not tried there.
+- Revisit when: a constructor that clears between 22 and 255 dwords is matched.
+
+## F-0120 0x001DADA0, 0x001E42B0, 0x001E42E0 and 0x001E4310 read members at negative offsets from this and are parked as source shape
+- Status: open
+- Addresses: 0x001DADA0, 0x001E42B0, 0x001E42E0, 0x001E4310, 0x001E4230, 0x001E42A0, 0x001E42D0, 0x001E4300, 0x002F3D28, 0x002F3D44, 0x002F3D48, 0x002F3D4C
+- Checked: ghidra-mcp disassemble_function and get_xrefs_to by the reviewer of night batch 4 (2026-11-24); ghidra-mcp disassemble_function, get_xrefs_to and read_memory at 0x002F3D20 by the reviewer of night batch 5 (2026-11-24)
+- Evidence: 0x001DADA0 is `xorps xmm0,xmm0; comiss xmm0,[ecx-0x51C]; jbe; mov al,1; ret`, and 0x001E42B0 is `mov al,[ecx-0x560]; and al,1; sub al,1; neg al; sbb eax,eax; add eax,1; ret`. The only reference to each is a jump from a `SUB ECX,[ECX-4]; JMP` thunk, 0x001E4230 and 0x001E42A0, and the thunks are referenced as data from 0x002F3D28 and 0x002F3D44. F-0087 gives this thunk shape for a class with a virtual base, where the override receives `this` as a pointer to the virtual base. The matcher's sources read the members through a cast such as `(char*)this - 0x51C` and give 100%. The reviewer failed both under S1, because the cast stands in for the class layout that VC71 generates (ADR-0013). That the negative offsets are members of the derived class seen from the virtual base is a guess from the thunk bytes and F-0087; nobody compiled a class with a virtual base for these two. Night batch 5 found two more: 0x001E42E0 reads `[ecx-0x554]` as `(x & 1) == 1`, and 0x001E4310 reads it as `(x & 2) == 2`. Each is called only from a thunk of the same shape, 0x001E42D0 and 0x001E4300, and those thunks are referenced as data from 0x002F3D48 and 0x002F3D4C, in the same table as the first two thunks. The matcher reports 11% for one class with a virtual base and an override, which read the member at a positive offset; the reviewer did not compile it.
+- Next: read the vtables at 0x002F3D28 and 0x002F3D44, write the class with its virtual base, and match the two functions as overrides.
+
+## F-0121 0x001E8280 takes its argument in EAX and is parked as unclassified
+- Status: open
+- Addresses: 0x001E8280, 0x001E8270
+- Checked: ghidra-mcp disassemble_function, get_xrefs_to and read_memory at 0x001E8260 by the reviewer and the lead (2026-11-24)
+- Evidence: The function is `test eax,eax; jg; cmp eax,-3; jl; mov eax,1; ret; xor eax,eax; ret`, which is `x <= 0 && x >= -3` with `x` in EAX. Nothing in it sets EAX before the first test. Ghidra has no reference to it. 0x001E8270 is a complete function (`mov eax,[esp+4]; mov [0x003DD8B8],eax; ret`), followed by `cc` padding up to 0x001E8280, so 0x001E8280 is not its tail and not a shared return (F-0078). No VC71 calling convention that a source can name passes the first argument in EAX, so `bool f(int x)` gives 0%. The matcher parked it as `register tie` after one form; the reviewer rejected that class, because an instruction is missing, not only a register name, and the lead set it to `unclassified`.
+- Next: find a caller that sets EAX, for example through an indirect call, or learn whether the original was built with a whole-program option that changes calling conventions.
+
+## F-0122 0x0020F4E0 matches when the member pointer is copied to a local before the null test
+- Status: confirmed
+- Addresses: 0x0020F4E0
+- Checked: the matcher's compiles in the worktree of night batch 5, the reviewer's compile in a copy, and ghidra-mcp disassemble_function (2026-11-24)
+- Evidence: The function is `mov ecx,[ecx+8]; test; jz; mov eax,[ecx]; push -1; call [eax+8]`. A local copy of the member before the test gives 100%. The reviewer compiled `if (p) return p->FUN_Slot2(-1);` on the member and got 5.0%, with the first difference at +0x0.
+- Revisit when: a function of this shape matches only with the test on the member.
+
+## F-0123 0x0010BBE0 ends in dec on a member, where the default flags give add -1, and is parked as unclassified
+- Status: open
+- Addresses: 0x0010BBE0, 0x0010BD6D, 0x0010BFA6, 0x0010C55E, 0x0004A920
+- Checked: ghidra-mcp disassemble_function and search_instructions by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 6 (2026-11-24)
+- Evidence: The function is `mov eax,[esp+4]; mov dword [eax],0; dec dword [ecx+0x4500]; ret 4`, with the `dec` bytes `ff 89 00 45 00 00`. The matcher reports that VC71 at the default flags gives `add dword [ecx+0x4500],-1` for `--n`, `n--`, `n -= 1`, `n = n - 1`, an unsigned member, an inline `Dec()` of a member struct and `(*p)--`, each at 70% with the first difference at +0xA. The reviewer did not compile them. Ghidra has the same `dec` on a member at 0x0010BD6D and 0x0010BFA6 (`[reg+0x10C]`) and at 0x0010C55E (`[ebx+0x4500]`, the same member). At the default flags 0x0004A920 matches with `add [mem],1` (F-0022). That this region was built with other flags is a guess; nobody compiled it at other flags.
+- Next: compile 0x0010BBE0 in a scratch directory at `/G6`, `/Os` and `/Ox`, compare the bytes, and record the result next to F-0018. Night batch 10 found the same kind of difference in 0x0010B770: the original ends in `inc eax` and the build gives `add eax,1` (F-0128).
+
+## F-0124 The unit of 0x001637E0 holds a second function at 0x001637F0 that Ghidra has not created
+- Status: open
+- Addresses: 0x001637E0, 0x001637F0, 0x00124255, 0x001F50F7
+- Checked: ghidra-mcp get_xrefs_to, find_functions and disassemble_function by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 7 (2026-11-24)
+- Evidence: The unit runs from 0x001637E0 to 0x00163800: `c2 04 00`, 13 `cc` bytes, then `c2 04 00`. Ghidra has the function 0x001637E0, a single `RET 0x4` that 0x001F50F7 calls. It has no function at 0x001637F0, which `JMP 0x001637f0` at 0x00124255 in 0x00124240 reaches after `MOV [ESP+4],EAX`. So 0x001637F0 is a real entry and not a shared return. The source of 0x001637E0 builds 3 of the 19 bytes, 15.8%, and the function is parked as `unclassified`, as the units of F-0078 and F-0108 are.
+- Next: create a function at 0x001637F0 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+
+## F-0125 Two forms of night batch 7 match only in one statement order
+- Status: confirmed
+- Addresses: 0x0016ACF0, 0x0018E450
+- Checked: the matcher's compiles in the worktree of night batch 7 and the reviewer's compiles in a copy (2026-11-24)
+- Evidence: 0x0016ACF0 matches with `if (i <= n) return p; return 0;`, and `if (i > n) return 0; return p;` gives 73.7% with the first difference at +0x7. 0x0018E450 matches with `y += o.y; x += o.x;`, and the order with `x` first gives 52.6% with the first difference at +0x7. The reviewer compiled both other forms.
+- Revisit when: a function of these shapes matches only in the other order.
+
+## F-0126 The unit of 0x001C0A20 holds a second function at 0x001C0A30 that Ghidra has not created
+- Status: open
+- Addresses: 0x001C0A20, 0x001C0A30, 0x002F2F08, 0x002F2F0C
+- Checked: ghidra-mcp get_xrefs_to, disassemble_function and read_memory by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 8 (2026-11-24)
+- Evidence: 0x001C0A20 is 16 bytes and ends with `RET` at 0x001C0A2F. The unit goes on with `33 C0 C3` (`xor eax,eax; ret`) at 0x001C0A30, where Ghidra has no function. The vtable at 0x002F2F00 lists 0x001C0A20 at 0x002F2F08 and 0x001C0A30 at 0x002F2F0C, so 0x001C0A30 is a virtual function. The source of 0x001C0A20 gives 84.2%, the 3 bytes of 0x001C0A30 being the only difference, and the function is parked as `unclassified`, as F-0124 is.
+- Next: create a function at 0x001C0A30 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+
+## F-0127 A mask written as ~3 matches where 0xfc does not
+- Status: confirmed
+- Addresses: 0x001C2840, 0x001C2860
+- Checked: the matcher's compiles in the worktree of night batch 8 and the reviewer's compiles in a copy (2026-11-24)
+- Evidence: `((a + b + 3) & ~3) * 2 + 16` on `unsigned char` members matches both functions. With `& 0xfc` both give 0.0%, with the first difference at +0x0; the reviewer compiled that form. The matcher reports that `& 0xfc` gives `and eax,0xfc` and `& ~3` gives `movzx` and `and al,0xfc`; the reviewer did not read the instructions.
+- Revisit when: a function of this shape matches only with `0xfc`.
+
+## F-0128 The unit of 0x0010B770 holds a second function at 0x0010B780 that Ghidra has not created
+- Status: open
+- Addresses: 0x0010B770, 0x0010B780
+- Checked: ghidra-mcp disassemble_function, read_memory and get_xrefs_to by the reviewer (2026-11-24); `uv run python -m bodecomp.match` in the worktree of night batch 10 (2026-11-24)
+- Evidence: 0x0010B770 is `mov eax,[ecx]; and eax,0x7fff; sub eax,3; neg eax; sbb eax,eax; inc eax; ret` and ends at 0x0010B77F. The unit goes on with `8b 41 4c c3` (`mov eax,[ecx+0x4c]; ret`) at 0x0010B780, where Ghidra has no function and no reference. The best source, `!((v & 0x7fff) - 3)` as `int`, gives 70%: it lacks those 4 bytes and has `add eax,1` for `inc eax`, the difference of F-0123. The matcher reports 35% for `== 3` as `bool` and 45% for an if-return. The function is parked as `unclassified`, as F-0124 and F-0126 are.
+- Next: create a function at 0x0010B780 with `tools/create-functions.sh`, cut the units again, and match the two functions.
+
+## F-0129 0x0018E580 calls a virtual function of a virtual base and is parked as unclassified at 4.8%
+- Status: open
+- Addresses: 0x0018E580
+- Checked: ghidra-mcp disassemble_function, force_decompile and get_xrefs_to by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 10 (2026-11-24)
+- Evidence: The function is `test ecx,ecx; jz; mov eax,[ecx]; mov edx,[eax+0xc]; mov eax,[ecx+edx]; add ecx,edx; jmp [eax+0x2c]; xor eax,eax; ret`: when `this` is not null, it calls slot 11 of the third virtual base, found through the vbtable entry at +0xc. Ghidra has no reference to it. The matcher reports 4.8% for a class with three virtual bases and `this ? C::c11() : 0`, which VC71 compiles as a direct call, and 0% for a free function. An unqualified virtual call was not tried.
+- Next: try `c11()` as an unqualified virtual call through the virtual base, and look for the vtable that holds 0x0018E580.
