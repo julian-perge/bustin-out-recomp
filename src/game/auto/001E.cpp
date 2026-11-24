@@ -104,7 +104,7 @@ bool S_001E4310::FUN_001E4310()
 }
 
 // 0x001E8280
-// parked: register tie
+// parked: unclassified
 bool FUN_001E8280(int x)
 {
     return x <= 0 && x >= -3;

@@ -2880,7 +2880,7 @@ address,status,source,score,detail
 0x001E81C0,matched,src/game/trivial/001E.cpp,100.0,
 0x001E81D0,matched,src/game/trivial/001E.cpp,100.0,
 0x001E8270,matched,src/game/trivial/001E.cpp,100.0,
-0x001E8280,parked,src/game/auto/001E.cpp,0.0,register tie
+0x001E8280,parked,src/game/auto/001E.cpp,0.0,unclassified
 0x001E8430,matched,src/game/trivial/001E.cpp,100.0,
 0x001E8470,matched,src/game/trivial/001E.cpp,100.0,
 0x001E8490,matched,src/game/trivial/001E.cpp,100.0,
