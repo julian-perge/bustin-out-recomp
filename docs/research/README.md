@@ -25,7 +25,7 @@ Date: 2026-11-24. Question: what must change in this repo so that one session ca
 | [07-a6000.md](07-a6000.md) | State files, task files for delegated runs, a hot analysis daemon |
 | [08-lists-and-experiments.md](08-lists-and-experiments.md) | The community list, the copy of it, the five rea-lab studies and their harness |
 | [09-claude-code.md](09-claude-code.md) | The Claude Code facts that an unattended run depends on, with quotes from the documentation |
-| [10-overnight-design.md](10-overnight-design.md) | The design: R1 to R10, two open decisions, the order of work, what can still stop a night |
+| [10-overnight-design.md](10-overnight-design.md) | The design: R1 to R10, two decisions, the order of work, what can still stop a night |
 | [11-overnight-prompt.md](11-overnight-prompt.md) | Two drafts of the prompt: one for after the design is built, one for the repo as it is |
 | [12-zx-reaper.md](12-zx-reaper.md) | A harness for byte-exact rebuilds, and its overnight stall |
 
@@ -55,11 +55,11 @@ Date: 2026-11-24. Question: what must change in this repo so that one session ca
 | R9 | One line from the session hook when a run is live | `tools/session-start.sh` |
 | R10 | Rehearsals of 1 hour before the first night | none |
 
-## Open decisions
+## Decisions of the user (2026-11-24)
 
-**D1. Who merges the pull request of a night.** `docs/agents/workflow.md` says that the user merges. The user's global instructions say that an unattended run merges when the merge gate passes. Options: (a) the user merges in the morning; (b) the run merges after its own gate passes. Recommendation: (a) for the first nights, because the repo has no CI workflow and the only review in the night is a Sonnet subagent. Next action: the user chooses, and ADR-0023 records it.
+**D1. Who merges the pull request of a night.** The user merges the first few nights by hand, as `docs/agents/workflow.md` says today. After that the user changes the rule so that the run merges when its gate passes.
 
-**D2. The Bash sandbox.** Options: (a) off; (b) on, after a test that VC71 under `wibo`, `uv`, `gh` and the ghidra-mcp bridge work inside it. Recommendation: (a) now, with one `needs-triage` issue for the test. Next action: none until that test is done.
+**D2. The Bash sandbox.** Off. Issue #92 holds the test of whether VC71 under `wibo`, `uv`, `gh` and the ghidra-mcp bridge work inside it.
 
 ## Verification
 

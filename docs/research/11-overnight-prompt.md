@@ -72,5 +72,5 @@ Gaps of prompt B against the design: no deny rules, so the "not permitted" list 
 
 1. `tmux attach -t night`: the last lines show the gate result and the pull request.
 2. Read the pull request body: the `USER:` lines need an answer, and the `GUESS:` lines need a check.
-3. `uv run python -m bodecomp.match --check` on the run branch, then review and merge (decision D1 of the design).
+3. `uv run python -m bodecomp.match --check` on the run branch, then review and merge (decision D1 of the design: the user merges for now).
 4. Remove the night worktrees with `git worktree remove` and delete `build/overnight/` so that the next run starts a new clock.
