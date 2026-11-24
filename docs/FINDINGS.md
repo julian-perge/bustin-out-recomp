@@ -1124,3 +1124,10 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compile in the worktree of night batch 2 (2026-11-24)
 - Evidence: The original is `fld; fsin; fstp` and `fld; fsin`-style `fcos` pairs with float loads and stores. `sinf` and `cosf` compile to calls and give 2.9%. No source form without inline assembly (ADR-0013) is known that emits the x87 instructions.
 - Next: check the SDK math headers for an inline form.
+
+## F-0162 Three compiler-form claims of night batch 3 at 0x001A85A0, 0x001550A0 and 0x001B0DB0
+- Status: confirmed
+- Addresses: 0x001A85A0, 0x001550A0, 0x001B0DB0
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 3 and the reviewer's compiles with `/O2 /G7 /arch:SSE /GX` in the same worktree (2026-11-24)
+- Evidence: 0x001A85A0 reads `[ecx-0x68]` with no null test. `static_cast<D*>(this)` for `D : Base, S` emits `test ecx,ecx; je; lea eax,[ecx-104]; xor eax,eax` (35 bytes against 32), and `((Base*)((char*)this - 0x68))->owner` matches at 100%. 0x001550A0 walks a list with no test at entry: `for` and `while` forms emit a leading `test ecx,ecx; je` (the `while (s != p)` form scores 41.4%), and the do-while form matches. 0x001B0DB0 needs `if (a) return ((a - b - 1) & 3) + 1; return 0;` with unsigned arguments; `if (!a) return 0;` first scores 24%. The ternary `a ? expr : 0` gives the same layout as the matching form.
+- Revisit when: the class layout around 0x001A85A0 is known.
