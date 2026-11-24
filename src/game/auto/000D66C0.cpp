@@ -9,11 +9,12 @@ struct S_000d66c0
     void FUN_000d66c0(float v);
 };
 
+// VC71 puts the or of flags before the store of f, and only a local reference to flags, which steers the compiler, keeps the original order (F-0117).
 // 0x000D66C0
+// parked: scheduling
 void S_000d66c0::FUN_000d66c0(float v)
 {
-    unsigned& r = flags;
     fl |= 0x10;
     f = v;
-    r |= 2;
+    flags |= 2;
 }
