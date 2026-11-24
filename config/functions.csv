@@ -40,7 +40,7 @@ address,status,source,score,detail
 0x00011B60,matched,src/game/trivial/0001.cpp,100.0,
 0x00011B70,matched,src/game/trivial/0001.cpp,100.0,
 0x00011B80,matched,src/game/trivial/0001.cpp,100.0,
-0x00011B90,nonmatching,src/game/auto/00011B90.cpp,76.2,"first difference at +0x10, target 21 bytes, built 16 bytes"
+0x00011B90,parked,src/game/auto/00011B90.cpp,76.2,unclassified
 0x00011BB0,matched,src/game/auto/0001.cpp,100.0,
 0x00011BD0,matched,src/game/auto/0001.cpp,100.0,
 0x00011C10,matched,src/game/trivial/0001.cpp,100.0,
