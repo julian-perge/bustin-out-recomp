@@ -850,3 +850,10 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: the matcher's compiles in the worktree of night batch 5, the reviewer's compile in a copy, and ghidra-mcp disassemble_function (2026-11-24)
 - Evidence: The function is `mov ecx,[ecx+8]; test; jz; mov eax,[ecx]; push -1; call [eax+8]`. A local copy of the member before the test gives 100%. The reviewer compiled `if (p) return p->FUN_Slot2(-1);` on the member and got 5.0%, with the first difference at +0x0.
 - Revisit when: a function of this shape matches only with the test on the member.
+
+## F-0123 0x0010BBE0 ends in dec on a member, where the default flags give add -1, and is parked as unclassified
+- Status: open
+- Addresses: 0x0010BBE0, 0x0010BD6D, 0x0010BFA6, 0x0010C55E, 0x0004A920
+- Checked: ghidra-mcp disassemble_function and search_instructions by the reviewer (2026-11-24); the matcher's compiles in the worktree of night batch 6 (2026-11-24)
+- Evidence: The function is `mov eax,[esp+4]; mov dword [eax],0; dec dword [ecx+0x4500]; ret 4`, with the `dec` bytes `ff 89 00 45 00 00`. The matcher reports that VC71 at the default flags gives `add dword [ecx+0x4500],-1` for `--n`, `n--`, `n -= 1`, `n = n - 1`, an unsigned member, an inline `Dec()` of a member struct and `(*p)--`, each at 70% with the first difference at +0xA. The reviewer did not compile them. Ghidra has the same `dec` on a member at 0x0010BD6D and 0x0010BFA6 (`[reg+0x10C]`) and at 0x0010C55E (`[ebx+0x4500]`, the same member). At the default flags 0x0004A920 matches with `add [mem],1` (F-0022). That this region was built with other flags is a guess; nobody compiled it at other flags.
+- Next: compile 0x0010BBE0 in a scratch directory at `/G6`, `/Os` and `/Ox`, compare the bytes, and record the result next to F-0018.
