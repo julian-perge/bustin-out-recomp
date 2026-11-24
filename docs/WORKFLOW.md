@@ -135,6 +135,57 @@ A batch is 20 functions from `match candidates 20 --min-size 17`; smaller functi
 
 Then `uv run python -m bodecomp.match --check` passes in the worktree. The first `uv run` there creates the worktree's own `.venv`. The worktree writes its objects to its own `build/match`. The units come from the main checkout, so do not delink in the main checkout while a matcher works. `git worktree remove "$wt"` deletes the links and keeps the files they point to.
 
+## An unattended run
+
+An unattended run is one session that runs matcher batches for a set number of hours while nobody is at the desk ([ADR-0023](adr/0023-unattended-run.md)). It is not a stage of `docs/agents/workflow.md`. The lead reads this section at the start, and again after each compaction.
+
+The user starts the run after `preflight` passes:
+
+    tmux new -s night
+    claude --permission-mode auto --settings config/overnight-settings.json
+
+Then the user pastes the prompt of `docs/research/11-overnight-prompt.md`. `config/overnight-settings.json` adds allow rules for the routine commands and deny rules for the Ghidra writes, the rebuild, the delink, a merge of the pull request, a forced link, a force push and the common written forms of a push to `main`. The rules for `sync apply`, `names set` and `names clear` also match an option before the subcommand. `tests/test_overnight_settings.py` checks sample commands against the rules. Its lists merge with those of `.claude/settings.json`. `.claude/settings.json` gets no deny rule, so the daytime rebuild still works. A deny rule matches the command as it is written, so a push to `main` that is written another way is not blocked by it. Forms such as `uv run --quiet python -m bodecomp.sync apply` match no allow rule and no deny rule, and the auto-mode classifier judges them. The run must not set `GHIDRA_DEBUGGER_URL` or `GHIDRA_DEBUGGER_TOOLS`, because the deny list leaves out the WinDbg proxy tools of the ghidra-mcp bridge.
+
+### Commands
+
+- `uv run python -m bodecomp.overnight preflight`: one line per check, then `preflight: pass`, or `preflight: fail` with exit 1. The checks: no tracked file has an uncommitted change, `main` equals `origin/main` after `git fetch origin main`, `orig/default.xbe` has the expected SHA-256, `build/target`, `build/strings.tsv`, `tools/wibo` and `tools/xdk` exist, `sync freshness` reports a level Ghidra project, the ghidra-mcp server answers, `gh auth status` passes, no open `ghidra-writer` issue is assigned, and the gate of `AGENTS.md` ("Every task") passes. The user runs it before the night, and the lead runs it again as its first step.
+- `uv run python -m bodecomp.overnight start 8h`: writes the start time, the limit, the run branch and the counts to `build/overnight/run.json`, and makes and switches to the run branch from `main`. It refuses a checkout with an uncommitted change, and a `main` that differs from `origin/main`. When the branch of the date exists here or on `origin`, such as after a rehearsal on the same day, it adds `-2`, `-3` and so on, and prints the branch it made. When a run is live, it changes nothing and prints the status. So a resumed or compacted session that runs it again keeps the clock.
+- `uv run python -m bodecomp.overnight status`: elapsed and remaining time, batches merged, functions matched and parked since the start, minutes since the last commit on the run branch or the last change to `build/overnight/journal.md`, whichever is later, the open worktrees, and whether the ghidra-mcp server answers. It appends the same numbers as one row to `build/overnight/log.tsv`. At 85 percent of the limit it prints `wrap up: start no new batch`, and at the limit `remaining: 0m`. When neither has come for longer than 30 minutes (`STALL_MINUTES`), it prints `stalled: stop the running matcher, park its open functions, start the next batch`.
+- `uv run python -m bodecomp.overnight finish`: runs the gate of `AGENTS.md` ("Every task") and `bodecomp.ledger --check`, prints `gate: pass` or the failing command, marks the pull request ready when the gate passes, prints its URL, and marks the run as ended. The checkout must be on the run branch, with no changed and no untracked file, and `HEAD` must be the head of the pull request, so commit and push the run branch first. Otherwise it prints `gate: fail` with the difference, runs no gate and does not mark the pull request ready. After a repair, the lead commits, pushes and runs `finish` again. It keeps the first end time and records the new gate result. On an ended run, `status` shows the clock at the end and the gate result, and logs no row.
+
+Only the user starts a new run after a run has ended, and the lead does none of these steps, so the journal is kept. The user copies what is needed from `build/overnight/journal.md`, removes the night worktrees with `git worktree remove`, deletes `build/overnight/`, then runs `preflight` and `start` again. `start` and `status` print these steps when `run.json` holds an ended run or cannot be read.
+
+The lead writes `build/overnight/journal.md`: one line per batch (functions given, matched, parked with the class, tokens), each tool failure with what the lead did, and the `GUESS:` and `USER:` lines. At the end the lead copies the journal into the body of the pull request.
+
+### The loop
+
+1. `preflight`. When it fails, fix only what this section lets you fix (start the server with `tools/ghidra-mcp-headless.sh`), and run it once more. When it still fails, run `finish` and stop.
+2. `start 8h`.
+3. Run `status` and print its output in full. When it prints `wrap up` or `remaining: 0m`, go to step 4. Otherwise run one batch, as the rules below say, and repeat step 3.
+4. Run `finish` and print its output in full. Put the journal in the body of the pull request.
+
+### Rules of a batch
+
+1. **Run branch.** `match/night-<YYYY-MM-DD>`, made from `main` by `start`, with a suffix `-2`, `-3` and so on when a branch of that name exists here or on `origin`. The name differs from `<type>/<issue>-<slug>`, because a night has no single issue (ADR-0023).
+2. **Batch.** As "Matching" says, with two differences. The worktree branches from the run branch, by the recipe of "A matcher's worktree". Never use `isolation: worktree`, which starts from the default branch and has no links to the ignored inputs. The merge goes into the run branch, with a merge commit. One matcher works at a time.
+3. **Gate after each merge.** `bodecomp.match --check` with every claimed function `matched` or parked, `pytest`, `ruff check`, `findings check` and `ledger --check`. Do not run `match` and `pytest` at the same time. The run records no names, so `sync check` and `names check` are not part of it.
+4. **A failed gate.** The lead makes one repair attempt. When the gate still fails, reset the run branch to the commit before the merge of that batch (`git merge --abort`, or `git reset --hard` on the run branch only). Tag the batch branch `archive/<run branch without match/>-<n>`, such as `archive/night-2026-11-25-2-3` for batch 3 of the run branch `match/night-2026-11-25-2`, so two runs of one day cannot share a tag, write a journal line and take the next batch. Three batches in a row that fail the gate end the run with `finish`.
+5. **Reviewer findings.** When the reviewer fails a function, the lead removes its claim or parks it, and the batch merges without it. The lead does not argue with the reviewer.
+6. **Push.** `git push -u origin <run branch>` after each merged batch. After the first push, `gh pr create --draft` with the title `match: night run <date>`. `finish` marks it ready. The user merges it (ADR-0023, D1).
+7. **Results row.** After each merge the lead adds the row to the batch table of `docs/m4-results.md`, as "Matching" says.
+8. **Findings.** The lead writes the `docs/FINDINGS.md` entries from the matcher and reviewer reports into the run branch (ADR-0020).
+9. **Batch size.** As "Matching" says when the run starts.
+10. **The server.** When `status` shows that the server does not answer, start it with `tools/ghidra-mcp-headless.sh`, wait for `check_connection`, and write a journal line. After two failed starts, end the run with `finish`.
+
+The run does not write to the Ghidra project: no `ghidra-writer` lock, no `names set`, no `sync apply`, no rebuild and no delink. When `preflight` fails on the Ghidra project, the user rebuilds it before the night.
+
+### No question stops the run
+
+- The lead never ends a turn with a question. For a choice that the documents do not decide, take the option that changes less, and write the choice and the reason as a journal line that starts with `GUESS:`.
+- For a thing that only the user can do or decide (a rebuild, a label change, a name with conflicting evidence), write a journal line that starts with `USER:` and go on with work that does not need it. At `finish` the lead opens one issue labeled `needs-triage` for each `USER:` line. The run changes no state label.
+- A tool failure: one retry, then the documented fix (`papercut find <words>`, `docs/FINDINGS.md`), then skip the batch. A timeout is not a reason to stop.
+- A permission that auto mode blocks: do not try the same action in another form. Write a `USER:` line and take the next batch.
+
 ## Trivial functions
 
 `uv run python -m bodecomp.trivial generate` writes C++ for small game functions by their byte shape and keeps only the ones that match. It takes every game function whose unit is 16 bytes or less after padding (`--max-size` changes this) and that no source outside `src/game/trivial/` claims. It recognises a fixed set of shapes, such as an empty function, `return 0`, a member getter, a global read, a forwarding jump, `delete this`, or the empty constructor or destructor of a class with a virtual destructor, and writes them in one scratch file per 64 KiB block of addresses, `build/trivial/<address >> 16>.cpp`. It compiles each scratch file and compares it with `bodecomp.match`. It then replaces `src/game/trivial/` with files that hold only the matched functions, and rewrites `config/functions.csv`. It needs `build/strings.tsv` from `tools/export-strings.sh`, because a function that returns a string's address is written with the string literal when the exported text matches the bytes in the xbe. Before compiling, it drops a function that calls a `FUN_` function defined in the same block, because VC71 would inline the call (F-0073). The sources use placeholder names: `FUN_<address>` for a function, `S_<address>` for the struct of a member function, and `DAT_<address>` for a global. When a scratch file does not compile, the command prints the block and the first compiler error, changes nothing under `src/game/trivial/`, and exits 1. Running it twice gives the same files. When a matcher claims a generated function in another file, `bodecomp.match` reports the address as claimed twice until the next `generate` run, which drops it from `src/game/trivial/`.

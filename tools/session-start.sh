@@ -79,6 +79,13 @@ branch=$(git -C "$ROOT" branch --show-current 2>/dev/null)
 changes=$(git -C "$ROOT" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 echo "branch: ${branch:-none}, uncommitted: $changes"
 
+# A live unattended run gets one line, so a session after a compaction learns
+# where its clock and its rules are (ADR-0023).
+if [ -f "$ROOT/build/overnight/run.json" ]; then
+  (cd "$TOOLS" && "${LIMIT[@]+"${LIMIT[@]}"}" uv run --quiet python -m bodecomp.overnight \
+    --root "$ROOT" hook-line) 2>/dev/null
+fi
+
 if curl -s -m 2 -o /dev/null "$URL/check_connection"; then
   echo "ghidra-mcp: up at $URL"
 else

@@ -120,6 +120,18 @@ Purpose: give each Claude session the current state, and give the agents only th
 - Input: git, GitHub (`gh` and `agent-skills`), `docs/FINDINGS.md`, `config/symbols.txt` and `ghidra/.sync-stamp`, and the ghidra-mcp schema from the running server or from a snapshot.
 - Output: the text the hook prints; the `ghidra-read` tool block in `.claude/agents/matcher.md` and `.claude/agents/reviewer.md`, and the allowed tools in `.claude/settings.json`.
 - Commands: `tools/session-start.sh` (run by the SessionStart hook in `.claude/settings.json`), `uv run python -m bodecomp.agent_tools`.
-- How: the hook prints the generated state of the work (branch, running processes, Ghidra project freshness, Ghidra writer, pull requests, assigned issues, next command, last merged pull request), whether ghidra-mcp is up, and the open and active findings, in 40 lines or fewer (ADR-0021). The agents are `namer` (the only one that writes to Ghidra), `matcher` and `reviewer`, in `.claude/agents/`.
+- How: the hook prints the generated state of the work (branch, running processes, Ghidra project freshness, Ghidra writer, pull requests, assigned issues, next command, last merged pull request), whether ghidra-mcp is up, and the open and active findings, in 40 lines or fewer (ADR-0021). When `build/overnight/run.json` holds a live unattended run, it adds one line from `bodecomp.overnight hook-line` (ADR-0023). The agents are `namer` (the only one that writes to Ghidra), `matcher` and `reviewer`, in `.claude/agents/`.
 - Tests: `tests/test_session_start.py`, `tests/test_agent_tools.py`.
 - Decisions and findings: ADR-0003, ADR-0007, ADR-0010, ADR-0015, F-0023, F-0025.
+
+## An unattended run
+
+Purpose: give a session that runs matcher batches for a set number of hours a clock, a progress count and a check before it starts ([ADR-0023](adr/0023-unattended-run.md)).
+
+- Files: `bodecomp/overnight.py`
+- Input: git, `config/functions.csv`, `orig/default.xbe`, `config/symbols.txt` and `ghidra/.sync-stamp`, the ghidra-mcp server, and GitHub through `gh`.
+- Output: `build/overnight/run.json` (start, limit, run branch, counts at the start, end) and `build/overnight/log.tsv` (one row per `status` call), and the run branch `match/night-<YYYY-MM-DD>`.
+- Commands: `uv run python -m bodecomp.overnight preflight|start <duration>|status|finish`.
+- How: `preflight` runs eight checks and the gate of `AGENTS.md`. `start` makes the run branch from `main` when the checkout is clean and `main` equals `origin/main`, adds `-2`, `-3` and so on when the name exists here or on `origin`, and keeps the first start time when a run is live. `status` prints the clock, a wrap-up line at 85 percent of the limit and a stall line after 30 minutes with no commit and no journal line. `finish` checks that the checkout is clean and is the head of the pull request, runs the gate and `ledger --check`, marks the pull request ready when they pass, and ends the run. The tests replace `gh`, the gate commands, the server check and the clock with fakes.
+- Tests: `tests/test_overnight.py`, and `tests/test_overnight_settings.py` for the permissions of `config/overnight-settings.json`.
+- Decisions and findings: ADR-0023, `docs/research/10-overnight-design.md` (R2 to R4).

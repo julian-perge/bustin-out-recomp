@@ -19,6 +19,7 @@ Where to start reading in the repo's tooling. [ARCHITECTURE.md](ARCHITECTURE.md)
 | What does a session see when it starts? | `tools/session-start.sh` | `.claude/settings.json`, `bodecomp/findings.py`, [ADR-0021](adr/0021-generated-session-state-and-ghidra-freshness.md) |
 | Which tools may an agent call? | `.claude/agents/` | `bodecomp/agent_tools.py`, `.claude/settings.json` |
 | How is progress counted? | `bodecomp/ledger.py` | `docs/LEDGER.md`, `bodecomp/readme.py` |
+| Where are the clock and the progress of an unattended run? | `bodecomp/overnight.py` | `build/overnight/run.json`, `build/overnight/log.tsv`, [WORKFLOW.md](WORKFLOW.md) "An unattended run", [ADR-0023](adr/0023-unattended-run.md) |
 | Is a fact about the binary already known? | [FINDINGS.md](FINDINGS.md) | `bodecomp/findings.py`, [adr/](adr/) |
 
 ## Top-level directories
@@ -55,6 +56,7 @@ The commands of [AGENTS.md](../AGENTS.md), "Commands":
 - String names: `tools/export-strings.sh`, then `uv run python -m bodecomp.names stated|batch N|set|clear|check`
 - Agent tools: `uv run python -m bodecomp.agent_tools`
 - Progress: `uv run python -m bodecomp.ledger`, `uv run python -m bodecomp.readme`
+- An unattended run: `uv run python -m bodecomp.overnight preflight|start|status|finish`
 
 ## Tests per area
 
@@ -70,6 +72,7 @@ The commands of [AGENTS.md](../AGENTS.md), "Commands":
 | String names | `tests/test_strings.py`, `tests/test_names.py`, `tests/test_export_strings.py` |
 | Ledger, README and findings | `tests/test_ledger.py`, `tests/test_readme.py`, `tests/test_findings.py` |
 | Agents and the session hook | `tests/test_session_start.py`, `tests/test_agent_tools.py` |
+| An unattended run | `tests/test_overnight.py`, `tests/test_overnight_settings.py` |
 | Docs | `tests/test_docs.py` |
 | Package import | `tests/test_smoke.py` |
 

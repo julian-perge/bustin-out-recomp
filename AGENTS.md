@@ -64,4 +64,5 @@ At the end of a plan, also set unfinished `active` findings back to `open`. Reco
 - Code outside functions: `uv run python -m bodecomp.gaps report|candidates|starts`, then `tools/create-functions.sh` (server stopped)
 - String names: `tools/export-strings.sh` (server stopped), then `uv run python -m bodecomp.names stated|batch N|set|clear|check`. Matched names: `names set 0xADDRESS NAME src/PATH.cpp`
 - Read-only tool list for the agents: `uv run python -m bodecomp.agent_tools`
+- An unattended run: `uv run python -m bodecomp.overnight preflight|start|status|finish` (`docs/WORKFLOW.md`, "An unattended run")
 - README progress block: `uv run python -m bodecomp.readme` (the user runs it occasionally; it is not part of the end of a batch)

@@ -151,6 +151,8 @@ Work is tracked in GitHub issues. `docs/agents/workflow.md` gives the stages, fr
 2. `pytest`, `ruff check`, `findings check` and the other checks of the full gate in `docs/WORKFLOW.md` pass, and
 3. the reviewer pass is clean.
 
+In an unattended run ([ADR-0023](adr/0023-unattended-run.md)), a batch merges into the run branch instead of `main`, by the same gate. The run branch goes to `main` through one pull request, and the user merges it.
+
 The results of each batch, with what matched, what was parked and why, go into the results file of its milestone, such as `docs/m4-results.md` or `docs/thunk-trial-results.md`.
 
 **The user's part.** Read the pull requests, the results files and `docs/LEDGER.md`, spot-check the source, and decide anything an agent flags as unclear, such as a name with conflicting evidence or a suspected original bug.
