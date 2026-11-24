@@ -470,3 +470,25 @@ def test_an_overnight_run_line_only_for_a_live_run(tmp_path, case):
         assert lines == [], result.stdout
     assert "branch: main, uncommitted:" in result.stdout
     assert len(result.stdout.splitlines()) <= 40
+
+
+FAKE_TIMEOUT = """#!/bin/bash
+# Records its arguments, then runs the command without a limit.
+echo "$*" >>"$FAKE_DIR/timeout-calls"
+shift
+exec "$@"
+"""
+
+
+def test_the_overnight_line_runs_under_the_time_limit(tmp_path):
+    root = project(_repo(tmp_path))
+    write_run(root, live_run(root))
+    sources = Sources(tmp_path)
+    sources.remove("timeout")
+    sources.install("timeout", FAKE_TIMEOUT)
+    result = run(root, closed_url(), sources)
+    assert result.returncode == 0
+    assert any(RUN_LINE.match(x) for x in result.stdout.splitlines()), result.stdout
+    calls = (sources.fake_dir / "timeout-calls").read_text().splitlines()
+    hook_call = f"4 uv run --quiet python -m bodecomp.overnight --root {root} hook-line"
+    assert hook_call in calls
