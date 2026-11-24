@@ -43,3 +43,19 @@ void S_0001BB80::fn_0001BB80()
     if (!flag)
         out = 1;
 }
+
+struct S_00017C70
+{
+    char pad[0x24];
+    int a;
+    int pad2;
+    int b;
+    void fn_00017C70(const int* p);
+};
+
+// 0x00017C70
+void S_00017C70::fn_00017C70(const int* p)
+{
+    a = p[0];
+    b = p[1];
+}
