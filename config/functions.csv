@@ -2714,7 +2714,7 @@ address,status,source,score,detail
 0x001C0930,matched,src/game/trivial/001C.cpp,100.0,
 0x001C0950,matched,src/game/trivial/001C.cpp,100.0,
 0x001C0A10,matched,src/game/trivial/001C.cpp,100.0,
-0x001C0A20,error,src/game/auto/001C0A20.cpp,,0 compiled symbols for bytes
+0x001C0A20,parked,src/game/auto/001C0A20.cpp,84.2,unclassified
 0x001C0A40,matched,src/game/trivial/001C.cpp,100.0,
 0x001C0A50,matched,src/game/trivial/001C.cpp,100.0,
 0x001C0A60,matched,src/game/trivial/001C.cpp,100.0,
