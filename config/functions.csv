@@ -2758,7 +2758,7 @@ address,status,source,score,detail
 0x001B57D0,matched,src/game/trivial/001B.cpp,100.0,
 0x001B5930,matched,src/game/trivial/001B.cpp,100.0,
 0x001B6550,matched,src/game/auto/001B6550.cpp,100.0,
-0x001B66A0,matched,src/game/auto/001B66A0.cpp,100.0,
+0x001B66A0,parked,src/game/auto/001B66A0.cpp,100.0,source shape
 0x001B81A0,matched,src/game/trivial/001B.cpp,100.0,
 0x001B8200,matched,src/game/auto/001B8200.cpp,100.0,
 0x001B8220,matched,src/game/auto/001B8220.cpp,100.0,

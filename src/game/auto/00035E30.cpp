@@ -12,6 +12,7 @@ struct S_00035E30
     bool FUN_00035e30();
 };
 
+// Every form tried builds and eax,1 where the original has and al,1 (F-0139).
 // 0x00035E30
 // parked: source shape
 bool S_00035E30::FUN_00035e30()

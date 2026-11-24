@@ -9,6 +9,7 @@ struct S_001DACD0
     bool FUN_001dacd0();
 };
 
+// The function is reached only through a virtual-base thunk (F-0120), and every form tried builds and eax,1 where the original has and al,1 (F-0139).
 // 0x001DACD0
 // parked: source shape
 bool S_001DACD0::FUN_001dacd0()
