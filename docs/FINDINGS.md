@@ -1040,9 +1040,16 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Evidence: The function is `cmp [esp+8],0; jnz; mov eax,[esp+4]; mov eax,[ecx+eax*4]; ret 8; mov eax,[ecx+8]; ret 8`. `if (!second) return m[i]; return m[2];` gives 100%. `if (second) return m[2]; return m[i];` and `return second ? m[2] : m[i];` give 43.5%, with the first difference at +0x5.
 - Revisit when: a function of this shape matches only with the set branch first.
 
-## F-0150 Twenty-eight three-argument setters of night batches 19, 22 and 23 share one 23-byte shape
+## F-0150 Thirty-three three-argument setters of night batches 19, 22, 23 and 24 share one 23-byte shape
 - Status: open
-- Addresses: 0x0004AAD0, 0x0004AB00, 0x000797A0, 0x00082B50, 0x000B16E0, 0x000BB320, 0x000D6540, 0x000DCD00, 0x000DF860, 0x000F4E60, 0x001A9660, 0x001B1040, 0x001C29A0, 0x001D81D0, 0x001DB5E0, 0x001DB600, 0x001DB630, 0x001DB670, 0x001DB690, 0x001DB6B0, 0x001EB080, 0x001EB0A0, 0x001EFB70, 0x001F5E40, 0x001F5E60, 0x001F8EB0, 0x001F8ED0, 0x001FD780
-- Checked: ghidra-mcp disassemble_function by the matchers and the reviewers of night batches 19, 22 and 23; `uv run python -m bodecomp.match` in their worktrees (2026-11-24)
-- Evidence: Each function is `mov eax,[esp+4]; mov edx,[esp+8]; mov [ecx],eax; mov eax,[esp+0xc]; mov [ecx+4],edx; mov [ecx+8],eax; ret 0xc`. `x = a; y = b; z = c;` on a struct of three `int` members matches all 28 at 100%. Whether the members are `int` or `float` is a guess, because the bytes are the same. Nobody compiled another source form.
+- Addresses: 0x0004AAD0, 0x0004AB00, 0x000797A0, 0x00082B50, 0x000B16E0, 0x000BB320, 0x000D6540, 0x000DCD00, 0x000DF860, 0x000F4E60, 0x001A9660, 0x001B1040, 0x001C29A0, 0x001D81D0, 0x001DB5E0, 0x001DB600, 0x001DB630, 0x001DB670, 0x001DB690, 0x001DB6B0, 0x001EB080, 0x001EB0A0, 0x001EFB70, 0x001F5E40, 0x001F5E60, 0x001F8EB0, 0x001F8ED0, 0x001FD780, 0x00208360, 0x00208380, 0x0020D7C0, 0x0020D8A0, 0x002106F0
+- Checked: ghidra-mcp disassemble_function by the matchers and the reviewers of night batches 19, 22, 23 and 24; `uv run python -m bodecomp.match` in their worktrees (2026-11-24)
+- Evidence: Each function is `mov eax,[esp+4]; mov edx,[esp+8]; mov [ecx],eax; mov eax,[esp+0xc]; mov [ecx+4],edx; mov [ecx+8],eax; ret 0xc`. `x = a; y = b; z = c;` on a struct of three `int` members matches all 33 at 100%. Whether the members are `int` or `float` is a guess, because the bytes are the same. Nobody compiled another source form.
 - Next: add the shape to `bodecomp.trivial` after a reviewer passes one example address (ADR-0013), so that later batches do not spend a matcher on it.
+
+## F-0151 A null-guarded tail call through a member pointer at 0x001FE880 matches only through a local copy
+- Status: confirmed
+- Addresses: 0x001FE880
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 24 and the reviewer's compiles in a scratch copy (2026-11-24)
+- Evidence: The function is `mov ecx,[ecx+0x1d0]; test ecx,ecx; jz; mov eax,[ecx]; jmp [eax+0xa4]; mov al,1; ret 4`. With a local copy `T* p = t;`, both `return p ? p->v41(a) : true;` and `if (p) return p->v41(a); return true;` give 100%. Forms on the member give 17.9% (`if (t) ...` and the ternary) and 14.3% (`if (!t) return true;`), and the local with `if (!p) return true;` gives 43.5%. The reviewer passed the local copy under S1 as ordinary code that caches a pointer it tests and calls through; it is not the store-order reference that F-0117 failed.
+- Revisit when: a null-guarded call through a member pointer matches without a local.
