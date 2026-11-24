@@ -3053,7 +3053,7 @@ address,status,source,score,detail
 0x001FE950,matched,src/game/trivial/001F.cpp,100.0,
 0x001FE960,matched,src/game/trivial/001F.cpp,100.0,
 0x001FE970,matched,src/game/trivial/001F.cpp,100.0,
-0x001FEB60,parked,src/game/auto/001F.cpp,76.5,source shape
+0x001FEB60,matched,src/game/auto/001F.cpp,100.0,
 0x001FEFA0,matched,src/game/trivial/001F.cpp,100.0,
 0x001FEFB0,matched,src/game/trivial/001F.cpp,100.0,
 0x001FEFC0,matched,src/game/trivial/001F.cpp,100.0,

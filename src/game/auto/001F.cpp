@@ -190,19 +190,18 @@ struct S_001FEB60Inner
     virtual void v40();
     virtual void v41();
     virtual void v42();
-    virtual void v43(int a);
+    virtual void v43();
 };
 
 struct S_001FEB60
 {
     char pad[0xbc];
     S_001FEB60Inner* inner;
-    void fn_001FEB60(int a);
+    void fn_001FEB60(int);
 };
 
 // 0x001FEB60
-// parked: source shape
-void S_001FEB60::fn_001FEB60(int a)
+void S_001FEB60::fn_001FEB60(int)
 {
-    inner->v43(a);
+    inner->v43();
 }
