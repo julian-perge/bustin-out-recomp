@@ -72,7 +72,7 @@ The commands of [AGENTS.md](../AGENTS.md), "Commands":
 | String names | `tests/test_strings.py`, `tests/test_names.py`, `tests/test_export_strings.py` |
 | Ledger, README and findings | `tests/test_ledger.py`, `tests/test_readme.py`, `tests/test_findings.py` |
 | Agents and the session hook | `tests/test_session_start.py`, `tests/test_agent_tools.py` |
-| An unattended run | `tests/test_overnight.py` |
+| An unattended run | `tests/test_overnight.py`, `tests/test_overnight_settings.py` |
 | Docs | `tests/test_docs.py` |
 | Package import | `tests/test_smoke.py` |
 

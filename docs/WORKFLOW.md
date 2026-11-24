@@ -139,6 +139,13 @@ Then `uv run python -m bodecomp.match --check` passes in the worktree. The first
 
 An unattended run is one session that runs matcher batches for a set number of hours while nobody is at the desk ([ADR-0023](adr/0023-unattended-run.md)). It is not a stage of `docs/agents/workflow.md`. The lead reads this section at the start, and again after each compaction.
 
+The user starts the run after `preflight` passes:
+
+    tmux new -s night
+    claude --permission-mode auto --settings config/overnight-settings.json
+
+Then the user pastes the prompt of `docs/research/11-overnight-prompt.md`. `config/overnight-settings.json` adds allow rules for the routine commands and deny rules for the Ghidra writes, the rebuild, the delink, a merge of the pull request, a force push and the two written forms of a push to `main`. Its lists merge with those of `.claude/settings.json`. `.claude/settings.json` gets no deny rule, so the daytime rebuild still works. A deny rule matches the command as it is written, so a push to `main` that is written another way is not blocked by it.
+
 ### Commands
 
 - `uv run python -m bodecomp.overnight preflight`: one line per check, then `preflight: pass`, or `preflight: fail` with exit 1. The checks: no tracked file has an uncommitted change, `orig/default.xbe` has the expected SHA-256, `build/target`, `build/strings.tsv`, `tools/wibo` and `tools/xdk` exist, `sync freshness` reports a level Ghidra project, the ghidra-mcp server answers, `gh auth status` passes, no open `ghidra-writer` issue is assigned, and the gate of `AGENTS.md` ("Every task") passes. The user runs it before the night, and the lead runs it again as its first step.
