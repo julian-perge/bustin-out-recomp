@@ -56,9 +56,10 @@ LOG_HEADER = (
 # git and gh calls get this many seconds. The gate commands get no limit.
 CALL_TIMEOUT = 60
 NEW_RUN = (
-    "to start a new run: copy what you need from build/overnight/journal.md, "
-    "remove the night worktrees with git worktree remove, delete build/overnight/, "
-    "then run uv run python -m bodecomp.overnight preflight and start again"
+    "only the user starts a new run, and the lead does none of these steps: "
+    "the user copies what is needed from build/overnight/journal.md, "
+    "removes the night worktrees with git worktree remove, deletes build/overnight/, "
+    "then runs uv run python -m bodecomp.overnight preflight and start again"
 )
 STALLED = (
     "stalled: stop the running matcher, park its open functions, start the next batch"
@@ -71,9 +72,16 @@ Runner = Callable[[Sequence[str]], tuple[int, str, str]]
 def shell(root: Path) -> Runner:
     def run(cmd: Sequence[str]) -> tuple[int, str, str]:
         timeout = None if tuple(cmd) in (*GATE, LEDGER_CHECK) else CALL_TIMEOUT
+        # Nobody answers a credential prompt in a run, so git fails at once.
+        env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
         try:
             done = subprocess.run(
-                list(cmd), cwd=root, capture_output=True, text=True, timeout=timeout
+                list(cmd),
+                cwd=root,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env=env,
             )
         except subprocess.TimeoutExpired:
             return 124, "", f"timed out after {timeout} seconds"
@@ -226,7 +234,7 @@ def status(m: Machine, run: dict) -> list[str]:
         f"ghidra-mcp: {'up' if up else 'down'}",
     ]
     if not live:
-        lines.append(f"run: ended {run['ended']}")
+        lines.append(f"run: ended {run['ended']}, gate: {run.get('gate', 'not run')}")
         return lines
     if elapsed * 100 >= limit * WRAP_UP_PERCENT:
         lines.append("wrap up: start no new batch")
@@ -272,6 +280,9 @@ def start(m: Machine, limit: int) -> int:
             return 1
     now = m.now()
     branch = free_branch(m, f"match/night-{now.date().isoformat()}")
+    if branch is None:
+        print("start: git ls-remote origin failed; nothing changed")
+        return 1
     base = git_out(m, "rev-parse", "--verify", "main")
     code, _, err = m.run(["git", "switch", "-c", branch, "main"])
     if base is None or code != 0:
@@ -293,10 +304,24 @@ def start(m: Machine, limit: int) -> int:
     return 0
 
 
-def free_branch(m: Machine, name: str) -> str:
+def branch_exists(m: Machine, name: str) -> bool | None:
+    """Say whether name is a branch here or on origin, or None when origin fails."""
+    if git_out(m, "rev-parse", "--verify", "--quiet", f"refs/heads/{name}"):
+        return True
+    # A branch can exist only on origin, such as a rehearsal pushed from another
+    # clone. Its old pull request would then be found, and the push would fail.
+    code, _, _ = m.run(["git", "ls-remote", "--exit-code", "--heads", "origin", name])
+    if code == 2:
+        return False
+    return True if code == 0 else None
+
+
+def free_branch(m: Machine, name: str) -> str | None:
     """Return name, or name with the first suffix -2, -3, ... that no branch has."""
     candidate, number = name, 1
-    while git_out(m, "rev-parse", "--verify", "--quiet", f"refs/heads/{candidate}"):
+    while (exists := branch_exists(m, candidate)) is not False:
+        if exists is None:
+            return None
         number += 1
         candidate = f"{name}-{number}"
     return candidate
@@ -331,9 +356,18 @@ def check_origin_main(m: Machine) -> str | None:
         return f"git fetch origin main failed: {err.strip()}"
     local = git_out(m, "rev-parse", "--verify", "main")
     remote = git_out(m, "rev-parse", "--verify", "origin/main")
-    if local is None or remote is None or local != remote:
-        return f"main is {local}, origin/main is {remote}; update main first"
-    return None
+    if local is None or remote is None:
+        return "main or origin/main is missing"
+    if local == remote:
+        return None
+    if m.run(["git", "merge-base", "--is-ancestor", "main", "origin/main"])[0] == 0:
+        return f"main {local} is behind origin/main {remote}; update main first"
+    if m.run(["git", "merge-base", "--is-ancestor", "origin/main", "main"])[0] == 0:
+        return (
+            f"main {local} is ahead of origin/main {remote}; "
+            "the user pushes main or resets it to origin/main"
+        )
+    return f"main {local} and origin/main {remote} differ; the user resolves this"
 
 
 def check_xbe(m: Machine) -> str | None:
@@ -443,9 +477,13 @@ def finish(m: Machine) -> int:
     pr = pull_request(m, branch)
     # The gate proves only the code it ran on, so finish runs it only on the
     # commit that the pull request holds.
+    changed = git_out(m, "status", "--porcelain")
     mismatch = None
     if run is not None and current != branch:
         mismatch = f"the checkout is on {current or 'no branch'}, not on {branch}"
+    elif changed is None or changed:
+        count = "some" if changed is None else len(changed.splitlines())
+        mismatch = f"{count} files are changed or untracked; commit or remove them"
     elif pr is not None and pr[1] != head:
         mismatch = f"HEAD {head} is not the pull request head {pr[1]}; push {branch}"
     failed = None if mismatch else run_gate(m, [*GATE, LEDGER_CHECK])

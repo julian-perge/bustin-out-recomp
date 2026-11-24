@@ -157,8 +157,9 @@ def test_start_after_an_ended_run_changes_nothing(repo, capsys):
     ended = (repo / "build/overnight/run.json").read_text()
     code, out = run_cli(capsys, m, "start", "8h")
     assert code == 1
-    assert "has ended; to start a new run:" in out
-    assert "delete build/overnight/" in out
+    assert "has ended; only the user starts a new run" in out
+    assert "the lead does none of these steps" in out
+    assert "deletes build/overnight/" in out
     assert (repo / "build/overnight/run.json").read_text() == ended
 
 
@@ -383,7 +384,9 @@ def test_preflight_fails_when_main_differs_from_origin_main(ready, capsys):
     git(ready, "commit", "-q", "-m", "local only")
     code, out = run_cli(capsys, machine(ready, Clock(T0), Fakes(ready)), "preflight")
     assert code == 1
-    assert "main is origin/main: fail (main is " in out
+    assert "main is origin/main: fail (main " in out
+    assert "is ahead of origin/main" in out
+    assert "the user pushes main or resets it to origin/main" in out
 
 
 def test_start_refuses_when_main_is_behind_origin_main(repo, tmp_path, capsys):
@@ -396,6 +399,7 @@ def test_start_refuses_when_main_is_behind_origin_main(repo, tmp_path, capsys):
     m = machine(repo, Clock(T0), Fakes(repo))
     code, out = run_cli(capsys, m, "start", "8h")
     assert code == 1
+    assert "is behind origin/main" in out
     assert "update main first; nothing changed" in out
     assert git(repo, "branch", "--show-current").strip() == "main"
     assert not (repo / "build/overnight/run.json").exists()
@@ -440,7 +444,7 @@ def test_status_of_an_ended_run_is_frozen_and_logs_nothing(repo, capsys):
     log = (repo / "build/overnight/log.tsv").read_text()
     out = status_at(capsys, m, clock, 900)
     assert "elapsed: 7h50m of 8h" in out
-    assert "run: ended 2026-11-26T05:50:00+00:00" in out
+    assert "run: ended 2026-11-26T05:50:00+00:00, gate: pass" in out
     assert "wrap up" not in out
     assert STALLED not in out
     assert (repo / "build/overnight/log.tsv").read_text() == log
@@ -452,7 +456,7 @@ def test_an_unreadable_run_file_gives_the_recovery_steps(repo, capsys, command):
     (repo / "build/overnight/run.json").write_text("garbage")
     code, out = run_cli(capsys, machine(repo, Clock(T0), Fakes(repo)), *command)
     assert code == 1
-    assert "cannot be read; to start a new run:" in out
+    assert "cannot be read; only the user starts a new run" in out
 
 
 def test_finish_fails_on_another_branch_and_does_not_mark_ready(repo, capsys):
@@ -488,3 +492,63 @@ def test_shell_keeps_stdout_and_stderr_apart_and_times_out(tmp_path, monkeypatch
 
 def test_a_url_with_no_scheme_is_no_answer():
     assert overnight.answers("127.0.0.1:1") is False
+
+
+def test_start_adds_a_suffix_when_the_run_branch_exists_only_on_origin(
+    repo, tmp_path, capsys
+):
+    git(repo, "push", "-q", "origin", "main:match/night-2026-11-25")
+    m = machine(repo, Clock(T0), Fakes(repo))
+    code, out = run_cli(capsys, m, "start", "1h")
+    assert code == 0
+    assert "start: made run branch match/night-2026-11-25-2, limit 1h" in out
+
+
+def test_start_stops_when_origin_cannot_be_asked(repo, capsys):
+    fakes = Fakes(repo)
+    ask = ("git", "ls-remote", "--exit-code", "--heads", "origin")
+    fakes.answers[(*ask, "match/night-2026-11-25")] = (128, "", "no network")
+    code, out = run_cli(capsys, machine(repo, Clock(T0), fakes), "start", "1h")
+    assert code == 1
+    assert "git ls-remote origin failed; nothing changed" in out
+    assert git(repo, "branch", "--show-current").strip() == "main"
+
+
+@pytest.mark.parametrize("kind", ["tracked", "untracked"])
+def test_finish_fails_on_a_dirty_checkout(repo, capsys, kind):
+    m, _, fakes = started(repo, capsys)
+    if kind == "tracked":
+        functions(repo, 9, 0)
+    else:
+        (repo / "new.cpp").write_text("int x;\n")
+    code, out = run_cli(capsys, m, "finish")
+    assert code == 1
+    assert "gate: fail (1 files are changed or untracked; commit or remove them)" in out
+    assert not any(call in fakes.calls for call in (*GATE, LEDGER_CHECK))
+    assert not any(call[:3] == ("gh", "pr", "ready") for call in fakes.calls)
+
+
+def test_a_second_finish_after_a_repair_passes_and_keeps_the_end(repo, capsys):
+    m, clock, fakes = started(repo, capsys)
+    fakes.answers[GATE[0]] = (1, "1 failed\n", "")
+    clock.when = T0 + timedelta(hours=8)
+    assert run_cli(capsys, m, "finish")[0] == 1
+    del fakes.answers[GATE[0]]
+    (repo / "fix.txt").write_text("repair\n")
+    git(repo, "add", "fix.txt")
+    git(repo, "commit", "-q", "-m", "repair", when=T0 + timedelta(hours=8, minutes=5))
+    clock.when = T0 + timedelta(hours=8, minutes=10)
+    code, out = run_cli(capsys, m, "finish")
+    assert code == 0
+    assert "gate: pass" in out
+    assert ("gh", "pr", "ready", "match/night-2026-11-25") in fakes.calls
+    run = json.loads((repo / "build/overnight/run.json").read_text())
+    assert run["ended"] == "2026-11-26T06:00:00+00:00"
+    assert run["gate"] == "pass"
+    assert "gate: pass" in status_at(capsys, m, clock, 700)
+
+
+def test_shell_turns_off_the_git_credential_prompt(tmp_path, monkeypatch):
+    monkeypatch.setenv("GIT_TERMINAL_PROMPT", "1")
+    run = overnight.shell(tmp_path)
+    assert run(["sh", "-c", "echo $GIT_TERMINAL_PROMPT"]) == (0, "0\n", "")
