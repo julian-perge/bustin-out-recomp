@@ -1032,3 +1032,17 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 21 and the reviewer's compiles in a scratch copy (2026-11-24)
 - Evidence: The function is `cmp [esp+4],8; ja; cmp byte [ecx+4],0; jz; mov al,1; ret 4; xor al,al; ret 4`. `if (n <= 8 && on) return true; return false;` gives 100%. `return n <= 8 && on != 0;` gives 50.0%, with the first difference at +0x6. F-0143 records a similar result for a bit test.
 - Revisit when: a function of this shape matches only with one return expression.
+
+## F-0149 A flag-selected array read at 0x001E78A0 matches only with the not-set branch first
+- Status: confirmed
+- Addresses: 0x001E78A0
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 23 and the reviewer's compiles in a scratch copy (2026-11-24)
+- Evidence: The function is `cmp [esp+8],0; jnz; mov eax,[esp+4]; mov eax,[ecx+eax*4]; ret 8; mov eax,[ecx+8]; ret 8`. `if (!second) return m[i]; return m[2];` gives 100%. `if (second) return m[2]; return m[i];` and `return second ? m[2] : m[i];` give 43.5%, with the first difference at +0x5.
+- Revisit when: a function of this shape matches only with the set branch first.
+
+## F-0150 Twenty-eight three-argument setters of night batches 19, 22 and 23 share one 23-byte shape
+- Status: open
+- Addresses: 0x0004AAD0, 0x0004AB00, 0x000797A0, 0x00082B50, 0x000B16E0, 0x000BB320, 0x000D6540, 0x000DCD00, 0x000DF860, 0x000F4E60, 0x001A9660, 0x001B1040, 0x001C29A0, 0x001D81D0, 0x001DB5E0, 0x001DB600, 0x001DB630, 0x001DB670, 0x001DB690, 0x001DB6B0, 0x001EB080, 0x001EB0A0, 0x001EFB70, 0x001F5E40, 0x001F5E60, 0x001F8EB0, 0x001F8ED0, 0x001FD780
+- Checked: ghidra-mcp disassemble_function by the matchers and the reviewers of night batches 19, 22 and 23; `uv run python -m bodecomp.match` in their worktrees (2026-11-24)
+- Evidence: Each function is `mov eax,[esp+4]; mov edx,[esp+8]; mov [ecx],eax; mov eax,[esp+0xc]; mov [ecx+4],edx; mov [ecx+8],eax; ret 0xc`. `x = a; y = b; z = c;` on a struct of three `int` members matches all 28 at 100%. Whether the members are `int` or `float` is a guess, because the bytes are the same. Nobody compiled another source form.
+- Next: add the shape to `bodecomp.trivial` after a reviewer passes one example address (ADR-0013), so that later batches do not spend a matcher on it.
