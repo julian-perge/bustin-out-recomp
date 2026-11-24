@@ -1081,3 +1081,18 @@ M2b Task 7 (2026-10-12) created 0x9C6B0 as a 9114-byte function ending at 0x9EA4
 - Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of night batch 26 and the reviewer's compiles in a scratch copy (2026-11-24)
 - Evidence: 0x00186F10 is `cmp [ecx+4],0; jz; mov eax,[ecx+8]; add eax,0x1f; shr eax,3; and eax,0x1ffffffc`. With `unsigned n` it gives 100%; with `int n` it gives 95.8%, the first difference at +0xD, because VC71 builds `sar` for `shr`. 0x001A6DD0 is `mov eax,[ecx+0x10]; cmp eax,-1; jz; ...; mov al,1; ret 4; xor al,al; ret 4`. `if (v != -1) { *out = v; return true; } return false;` gives 100%; `if (v == -1) return false; *out = v; return true;` gives 41.7%, the first difference at +0x6. F-0149 records the same branch-order effect.
 - Revisit when: a function of either shape matches with the other form.
+
+
+## F-0156 A masked unsigned char member converts to bool at 0x00071BA0 without a ternary
+- Status: confirmed
+- Addresses: 0x00071BA0
+- Checked: ghidra-mcp disassemble_function by the matcher and the reviewer; the matcher's compiles in the worktree of the first batch of the run of 2026-11-24 and the reviewer's compiles in a scratch copy (2026-11-24)
+- Evidence: Ghidra shows `test byte [eax+0xb6],6; setnz al` after a call to virtual slot 107. With an `unsigned char` member, `return p->FUN_s107()->flags & 6;` as a bool gives the same bytes as the committed `? true : false`. `!= 0` and `!!` give `and al,6; neg al; sbb eax,eax; neg eax` (58.6%). A `char` member or an `unsigned int` member does not match.
+- Revisit when: a bool flag test elsewhere gives a different shape.
+
+## F-0157 A string copy into a caller buffer at 0x00033550 is strcpy of a literal
+- Status: confirmed
+- Addresses: 0x00033550
+- Checked: ghidra-mcp disassemble_function and read_memory by the matcher and the reviewer (2026-11-24)
+- Evidence: Ghidra shows `rep movsd` of 10 dwords and a `movsw` from 0x002E362C to the argument, with `ret 4`; the string there is 41 characters plus the NUL. `strcpy(out, "...")` with an `extern "C"` declaration matches at 100%, and `memcpy(out, lit, 42)` gives the same bytes. The source declares `strcpy` and `memset` itself, because the matcher has no include path for `<string.h>` (C1034).
+- Revisit when: not needed.
