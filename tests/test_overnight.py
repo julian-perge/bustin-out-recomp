@@ -355,6 +355,13 @@ def test_finish_without_a_run_still_runs_the_gate(repo, capsys):
 
 def test_a_broken_run_file_is_no_run(tmp_path):
     path = tmp_path / "run.json"
-    for text in ("", "garbage", "[]", '{"start": "x"}', '{"start": "2026-11-25"}'):
+    for text in (
+        "",
+        "garbage",
+        "[]",
+        '{"start": "x"}',
+        '{"start": "2026-11-25"}',
+        '{"start": "2026-11-25T22:00", "limit_minutes": 9, "branch": "b", "base": "c"}',
+    ):
         path.write_text(text)
         assert overnight.read_run(path) is None

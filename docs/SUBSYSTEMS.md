@@ -120,7 +120,7 @@ Purpose: give each Claude session the current state, and give the agents only th
 - Input: git, GitHub (`gh` and `agent-skills`), `docs/FINDINGS.md`, `config/symbols.txt` and `ghidra/.sync-stamp`, and the ghidra-mcp schema from the running server or from a snapshot.
 - Output: the text the hook prints; the `ghidra-read` tool block in `.claude/agents/matcher.md` and `.claude/agents/reviewer.md`, and the allowed tools in `.claude/settings.json`.
 - Commands: `tools/session-start.sh` (run by the SessionStart hook in `.claude/settings.json`), `uv run python -m bodecomp.agent_tools`.
-- How: the hook prints the generated state of the work (branch, running processes, Ghidra project freshness, Ghidra writer, pull requests, assigned issues, next command, last merged pull request), whether ghidra-mcp is up, and the open and active findings, in 40 lines or fewer (ADR-0021). The agents are `namer` (the only one that writes to Ghidra), `matcher` and `reviewer`, in `.claude/agents/`.
+- How: the hook prints the generated state of the work (branch, running processes, Ghidra project freshness, Ghidra writer, pull requests, assigned issues, next command, last merged pull request), whether ghidra-mcp is up, and the open and active findings, in 40 lines or fewer (ADR-0021). When `build/overnight/run.json` holds a live unattended run, it adds one line from `bodecomp.overnight hook-line` (ADR-0023). The agents are `namer` (the only one that writes to Ghidra), `matcher` and `reviewer`, in `.claude/agents/`.
 - Tests: `tests/test_session_start.py`, `tests/test_agent_tools.py`.
 - Decisions and findings: ADR-0003, ADR-0007, ADR-0010, ADR-0015, F-0023, F-0025.
 

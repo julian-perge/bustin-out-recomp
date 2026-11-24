@@ -1,9 +1,12 @@
+import json
 import os
+import re
 import shutil
 import socket
 import subprocess
 import threading
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -355,9 +358,7 @@ def test_a_renamed_function_asks_for_sync_apply(tmp_path, monkeypatch):
         [SYMBOLS[0], replace(SYMBOLS[1], name="OtherName"), SYMBOLS[2]],
     )
     line = freshness_line(root, tmp_path)
-    assert line == (
-        "ghidra project: names changed, run sync apply and sync check"
-    )
+    assert line == ("ghidra project: names changed, run sync apply and sync check")
 
 
 def test_a_function_size_change_asks_for_sync_apply(tmp_path, monkeypatch):
@@ -367,9 +368,7 @@ def test_a_function_size_change_asks_for_sync_apply(tmp_path, monkeypatch):
         [SYMBOLS[0], replace(SYMBOLS[1], size=24), SYMBOLS[2]],
     )
     line = freshness_line(root, tmp_path)
-    assert line == (
-        "ghidra project: names changed, run sync apply and sync check"
-    )
+    assert line == ("ghidra project: names changed, run sync apply and sync check")
 
 
 def test_other_changed_lines_ask_for_sync_apply(tmp_path, monkeypatch):
@@ -379,9 +378,7 @@ def test_other_changed_lines_ask_for_sync_apply(tmp_path, monkeypatch):
         [*SYMBOLS[:2], replace(SYMBOLS[2], name="g_other")],
     )
     line = freshness_line(root, tmp_path)
-    assert line == (
-        "ghidra project: names changed, run sync apply and sync check"
-    )
+    assert line == ("ghidra project: names changed, run sync apply and sync check")
 
 
 def test_no_symbols_file_says_so(tmp_path):
@@ -411,3 +408,59 @@ def test_a_second_run_within_a_minute_does_not_call_gh_again(tmp_path):
     second = run(root, closed_url(), sources)
     assert (sources.fake_dir / "gh-calls").read_text().splitlines() == calls
     assert second.stdout == first.stdout
+
+
+RUN_LINE = re.compile(
+    r"^overnight run: 1h1[56]m of 8h, branch main, 0 batches merged; "
+    r'run "uv run python -m bodecomp.overnight status", '
+    r"rules in docs/WORKFLOW.md \(An unattended run\)$"
+)
+
+
+def write_run(root: Path, text: str) -> None:
+    (root / "build/overnight").mkdir(parents=True)
+    (root / "build/overnight/run.json").write_text(text)
+
+
+def live_run(root: Path, ended: str | None = None) -> str:
+    base = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    start = datetime.now(UTC) - timedelta(minutes=75)
+    return json.dumps(
+        {
+            "start": start.isoformat(timespec="seconds"),
+            "limit_minutes": 480,
+            "branch": "main",
+            "base": base,
+            "matched_at_start": 0,
+            "parked_at_start": 0,
+            "ended": ended,
+        }
+    )
+
+
+@pytest.mark.parametrize("case", ["live", "ended", "absent", "broken", "empty"])
+def test_an_overnight_run_line_only_for_a_live_run(tmp_path, case):
+    root = project(_repo(tmp_path))
+    if case == "live":
+        write_run(root, live_run(root))
+    elif case == "ended":
+        write_run(root, live_run(root, ended="2026-11-25T06:00:00+00:00"))
+    elif case == "broken":
+        write_run(root, '{"start": "not a time", "branch": ')
+    elif case == "empty":
+        write_run(root, "")
+    result = run(root, closed_url(), Sources(tmp_path))
+    assert result.returncode == 0
+    lines = [x for x in result.stdout.splitlines() if x.startswith("overnight run")]
+    if case == "live":
+        assert len(lines) == 1, result.stdout
+        assert RUN_LINE.match(lines[0]), lines[0]
+    else:
+        assert lines == [], result.stdout
+    assert "branch: main, uncommitted:" in result.stdout
+    assert len(result.stdout.splitlines()) <= 40

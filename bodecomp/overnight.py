@@ -106,7 +106,8 @@ def duration(minutes: int) -> str:
 def read_run(path: Path) -> dict | None:
     try:
         data = json.loads(path.read_text())
-        datetime.fromisoformat(data["start"])
+        if datetime.fromisoformat(data["start"]).tzinfo is None:
+            return None
         int(data["limit_minutes"])
         str(data["branch"])
         str(data["base"])
@@ -392,6 +393,20 @@ def finish(m: Machine) -> int:
     return 0 if failed is None else 1
 
 
+def hook_line(m: Machine) -> str | None:
+    """Return the line that tools/session-start.sh prints for a live run."""
+    run = read_run(m.root / RUN)
+    if not is_live(run):
+        return None
+    elapsed = minutes_between(datetime.fromisoformat(run["start"]), m.now())
+    return (
+        f"overnight run: {duration(elapsed)} of {duration(int(run['limit_minutes']))}, "
+        f"branch {run['branch']}, {merged_batches(m, run)} batches merged; "
+        'run "uv run python -m bodecomp.overnight status", '
+        "rules in docs/WORKFLOW.md (An unattended run)"
+    )
+
+
 def main(argv: list[str] | None = None, machine: Machine | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m bodecomp.overnight")
     parser.add_argument("--root", type=Path, default=Path())
@@ -401,6 +416,7 @@ def main(argv: list[str] | None = None, machine: Machine | None = None) -> int:
     begin.add_argument("limit", type=parse_duration, help="such as 8h or 90m")
     sub.add_parser("status", help="print the clock and the progress of the run")
     sub.add_parser("finish", help="run the gate and end the run")
+    sub.add_parser("hook-line", help="the session hook's line for a live run")
     args = parser.parse_args(argv)
     m = machine or Machine(
         root=args.root,
@@ -414,6 +430,11 @@ def main(argv: list[str] | None = None, machine: Machine | None = None) -> int:
         return start(m, args.limit)
     if args.command == "finish":
         return finish(m)
+    if args.command == "hook-line":
+        line = hook_line(m)
+        if line:
+            print(line)
+        return 0
     run = read_run(m.root / RUN)
     if run is None:
         print("status: no run; start one with")
