@@ -47,10 +47,14 @@ DENY = [
     "Bash(git push *+main*)",
     "Bash(git push *refs/heads/main*)",
     # The links of "A matcher's worktree" name paths that differ per machine, so
-    # the allow rule stays Bash(ln -s *) and a forced link is denied.
-    "Bash(ln -s -f*)",
+    # the allow rule stays Bash(ln -s *), and a link with any more option is denied.
     "Bash(ln -sf*)",
-    "Bash(ln -s --force*)",
+    "Bash(uv run python -m bodecomp.names clear*)",
+    "Bash(uv run python -m bodecomp.names *clear*)",
+    "Bash(git push * main *)",
+    "Bash(git push *:main *)",
+    "Bash(ln -s -*)",
+    "Bash(ln -s * -*)",
 ]
 SCHEMA = {
     "tools": [
@@ -136,9 +140,16 @@ FORBIDDEN = [
     "git push origin HEAD:main",
     "git push origin +main",
     "git push origin match/night-2026-11-25:refs/heads/main",
+    "uv run python -m bodecomp.names clear 0x00011000",
+    "uv run python -m bodecomp.names --symbols config/symbols.txt clear 0x1",
+    "git push origin main -u",
+    "git push origin HEAD:main -q",
     "ln -sf /a /b",
     "ln -s -f /a /b",
     "ln -s --force /a /b",
+    "ln -s -n -f /a /b",
+    "ln -s /a /b -f",
+    "ln -s --no-dereference --force /a /b",
 ]
 WT = "../bustin-out-recomp-night-1"
 ROUTINE = [
@@ -174,12 +185,12 @@ NOT_DENIED = [
 def rule_matches(rule: str, command: str) -> bool:
     """Match a command with a Bash(...) rule as Claude Code reads it.
 
-    A rule that ends in " *" matches its prefix alone or followed by a space and
-    any text. Any other * matches any text, also none.
+    A rule whose only * is a trailing " *" matches its prefix alone or followed
+    by a space and any text. Any other * matches any text, also none.
     """
     body = rule.removeprefix("Bash(").removesuffix(")")
     tail = ""
-    if body.endswith(" *"):
+    if body.endswith(" *") and body.count("*") == 1:
         body, tail = body[:-2], "( .*)?"
     pattern = ".*".join(re.escape(part) for part in body.split("*")) + tail
     return re.fullmatch(pattern, command, re.DOTALL) is not None
@@ -197,6 +208,8 @@ def test_the_rule_matcher_reads_wildcards():
     assert rule_matches("Bash(git push * main)", "git push origin main")
     assert not rule_matches("Bash(git push * main)", "git push origin main-2")
     assert rule_matches("Bash(a*b)", "ab")
+    assert rule_matches("Bash(* --help *)", "npm --help x")
+    assert not rule_matches("Bash(* --help *)", "npm --help")
 
 
 @pytest.mark.parametrize("command", FORBIDDEN)
