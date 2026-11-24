@@ -3358,7 +3358,7 @@ address,status,source,score,detail
 0x0021A810,matched,src/game/trivial/0021.cpp,100.0,
 0x0021ADA0,matched,src/game/trivial/0021.cpp,100.0,
 0x0021B430,matched,src/game/trivial/0021.cpp,100.0,
-0x0021B4A0,parked,src/game/auto/0021.cpp,64.7,register tie
+0x0021B4A0,parked,src/game/auto/0021.cpp,64.7,source shape
 0x0021B820,matched,src/game/trivial/0021.cpp,100.0,
 0x0021B830,matched,src/game/trivial/0021.cpp,100.0,
 0x0021BB50,matched,src/game/trivial/0021.cpp,100.0,
