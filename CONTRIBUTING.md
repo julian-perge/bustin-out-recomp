@@ -50,4 +50,4 @@ uv run pytest -q && uv run ruff check . && uv run python -m bodecomp.findings ch
 
 ## How the maintainer merges
 
-The maintainer reviews and merges each pull request. Every pull request merges with a merge commit, never squash or rebase, because a squash or rebase merge gives the commits of the branch new hashes and a finding can cite them ([ADR-0016](docs/adr/0016-one-fresh-public-commit.md), [ADR-0020](docs/adr/0020-agent-push-and-merge-commit.md)).
+The maintainer decides the merge of each pull request. The maintainer merges it, or approves that a review session lands that pull request after a passing review ([docs/agents/workflow.md](docs/agents/workflow.md), "Checks"). Every pull request merges with a merge commit, never squash or rebase, because a squash or rebase merge gives the commits of the branch new hashes and a finding can cite them ([ADR-0016](docs/adr/0016-one-fresh-public-commit.md), [ADR-0020](docs/adr/0020-agent-push-and-merge-commit.md)).
