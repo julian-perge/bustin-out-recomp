@@ -9,6 +9,7 @@ struct S_001AF340
 };
 
 // 0x001AF340
+// parked: source shape
 int S_001AF340::FUN_001af340()
 {
     S_001AF340_elem* const* base = (S_001AF340_elem* const*)((char*)this - 0x64);
