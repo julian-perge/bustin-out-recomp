@@ -141,7 +141,7 @@ The matcher writes one line to `$wt/build/batch-state.txt` after each function: 
 
 An unattended run is one session that runs matcher batches for a set number of hours while nobody is at the desk ([ADR-0023](adr/0023-unattended-run.md)). It is not a stage of `docs/agents/workflow.md`. The lead reads this section at the start, and again after each compaction.
 
-The user starts the run after `preflight` passes:
+The user starts the run after `preflight` passes. Every run is in Code Mode, so `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1` must be set ("Turn counts after a rehearsal"):
 
     tmux new -s night
     claude --permission-mode auto --settings config/overnight-settings.json
@@ -195,7 +195,7 @@ The run does not write to the Ghidra project: no `ghidra-writer` lock, no `names
 
     jq -rn 'reduce inputs as $r ({}; (input_filename | sub("[.](meta[.]json|jsonl)$"; "")) as $agent
       | if input_filename | endswith(".meta.json") then .[$agent].meta = $r
-        elif $r.type == "assistant" then .[$agent].ids[$r.message.id] = true
+        elif $r.type == "assistant" and ($r.message.model != "<synthetic>" or $r.isVirtual) then .[$agent].ids[$r.message.id] = true
           | if $r.message.model != "<synthetic>" then .[$agent].replies[$r.message.id] = true else . end
         else . end)
       | .[] | select(.meta.agentType == "matcher" or .meta.agentType == "reviewer")
@@ -206,7 +206,7 @@ It prints one line for each `matcher` and `reviewer` subagent: the agent type, t
 Every unattended run, and every rehearsal, runs in Code Mode (the user's decision, 2026-11-25). Start it as an interactive session, as at the top of "An unattended run", with `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`. The repo does not set this variable, so it comes from the settings or the shell of the machine. The variable alone does not prove that a subagent used Code Mode: in the test below, some subagents did not get the Code Mode tool while the shell had the variable set. So after each rehearsal, check that `all IDs` is higher than `replies` for every `matcher` and `reviewer` that used tools. When the two are equal, read the subagent's transcript, and do not use its count until the transcript shows that it ran in Code Mode (a `REPL` call, or records marked `isVirtual`). A rehearsal in which a `matcher` or a `reviewer` ran without Code Mode does not count.
 
 - `replies` counts the unique message IDs of the model's replies. It leaves out the records whose model is `<synthetic>`.
-- `all IDs` counts the unique message IDs of all `assistant` records. In Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE`), Claude writes JavaScript that makes tool calls. In the transcripts of Claude Code 2.1.331 that were checked on 2026-11-25, each of those calls has its own record, marked `isVirtual`, with the model `<synthetic>` and its own message ID. So `all IDs` is much larger than `replies` there. In a transcript with no `<synthetic>` records, the two numbers are equal.
+- `all IDs` counts the unique message IDs of the replies and of the `assistant` records marked `isVirtual`. It leaves out every other `<synthetic>` record. An API error can write such a record, which would make `all IDs` higher than `replies` without Code Mode. In Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE`), Claude writes JavaScript that makes tool calls. In the transcripts of Claude Code 2.1.331 that were checked on 2026-11-25, each of those calls has its own record, marked `isVirtual`, with the model `<synthetic>` and its own message ID. So `all IDs` is much larger than `replies` there. In a transcript with no `isVirtual` records, the two numbers are equal.
 
 Use `replies` for `maxTurns`. A test on 2026-11-25 with Claude Code 2.1.332 showed that the limit counts the model's replies, and not the tool calls that the JavaScript makes. A test subagent had `maxTurns: 3` and followed a chain of 12 files, in which each file names the next one. One run for each case:
 
@@ -221,7 +221,7 @@ In the second case, the third reply made two direct tool calls (`REPL` and `Poll
 What the docs and the transcripts say, checked on 2026-11-25:
 
 - The Claude Code docs say that `maxTurns` is the ["Maximum number of agentic turns before the subagent stops"](https://code.claude.com/docs/en/sub-agents#frontmatter-reference). The Agent SDK reference calls these turns ["API round-trips"](https://code.claude.com/docs/en/agent-sdk/typescript#agentdefinition). The page on the agent loop says to [count each turn with tool calls, plus one for the final text-only response](https://code.claude.com/docs/en/agent-sdk/agent-loop#turns-and-messages).
-- Observed in 72 Code Mode transcripts of both agents: each reply has its own request ID, and no two replies share one.
+- Observed in 61 Code Mode transcripts of both agents: each reply has its own request ID, and no two replies share one.
 - The pages above and the [Code Mode page](https://code.claude.com/docs/en/code-mode) do not say whether a tool call from the JavaScript counts as a turn. They also do not say how the count of a resumed subagent works.
 
 The docs say that the [transcript format is internal](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored) and can change in any release, so check the output again after an update of Claude Code. Claude Code deletes old transcripts, after 30 days by default.
