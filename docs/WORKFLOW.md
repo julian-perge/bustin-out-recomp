@@ -203,6 +203,8 @@ The run does not write to the Ghidra project: no `ghidra-writer` lock, no `names
 
 It prints one line for each `matcher` and `reviewer` subagent: the agent type, the description, `replies` and `all IDs`.
 
+Every unattended run, and every rehearsal, runs in Code Mode (the user's decision, 2026-11-25). Start it as an interactive session, as at the top of "An unattended run", with `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`. The repo does not set this variable, so it comes from the settings or the shell of the machine. The variable alone does not prove that a subagent used Code Mode: in the test below, some subagents did not get the Code Mode tool while the shell had the variable set. So after each rehearsal, check that `all IDs` is higher than `replies` for every `matcher` and `reviewer` that used tools. When the two are equal, read the subagent's transcript, and do not use its count until the transcript shows that it ran in Code Mode (a `REPL` call, or records marked `isVirtual`). A rehearsal in which a `matcher` or a `reviewer` ran without Code Mode does not count.
+
 - `replies` counts the unique message IDs of the model's replies. It leaves out the records whose model is `<synthetic>`.
 - `all IDs` counts the unique message IDs of all `assistant` records. In Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE`), Claude writes JavaScript that makes tool calls. In the transcripts of Claude Code 2.1.331 that were checked on 2026-11-25, each of those calls has its own record, marked `isVirtual`, with the model `<synthetic>` and its own message ID. So `all IDs` is much larger than `replies` there. In a transcript with no `<synthetic>` records, the two numbers are equal.
 
