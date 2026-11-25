@@ -133,13 +133,15 @@ A batch is 20 functions from `match candidates 20 --min-size 17`; smaller functi
     ln -s "$PWD/tools/wibo" "$wt/tools/wibo"
     ln -s "$PWD/tools/xdk" "$wt/tools/xdk"
 
-Then `uv run python -m bodecomp.match --check` passes in the worktree. The first `uv run` there creates the worktree's own `.venv`. The worktree writes its objects to its own `build/match`. The units come from the main checkout, so do not delink in the main checkout while a matcher works. `git worktree remove "$wt"` deletes the links and keeps the files they point to.
+Then `uv run python -m bodecomp.match --check` passes in the worktree. The first `uv run` there creates the worktree's own `.venv`. The worktree writes its objects to its own `build/match`. The units come from the main checkout, so do not delink in the main checkout while a matcher works. `git worktree remove "$wt"` deletes the links and keeps the files they point to. It also deletes the other git-ignored files of the worktree, such as `build/batch-state.txt`.
+
+The matcher writes one line to `$wt/build/batch-state.txt` after each function: the address and the state (`matched`, `nonmatching` with the score, or `parked` with the blocker class). The lead reads the file when the matcher is cut off (an API error, a stall or its turn limit), and in any case before it removes the worktree. A function of the batch with no line, or with a `nonmatching` line, is still open. The lines are the matcher's own report, so `bodecomp.match` still decides whether a function is `matched`.
 
 ## An unattended run
 
 An unattended run is one session that runs matcher batches for a set number of hours while nobody is at the desk ([ADR-0023](adr/0023-unattended-run.md)). It is not a stage of `docs/agents/workflow.md`. The lead reads this section at the start, and again after each compaction.
 
-The user starts the run after `preflight` passes:
+The user starts the run after `preflight` passes. Every run is in Code Mode, so `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1` must be set ("Turn counts after a rehearsal"):
 
     tmux new -s night
     claude --permission-mode auto --settings config/overnight-settings.json
@@ -150,7 +152,7 @@ Then the user pastes the prompt of `docs/research/11-overnight-prompt.md`. `conf
 
 - `uv run python -m bodecomp.overnight preflight`: one line per check, then `preflight: pass`, or `preflight: fail` with exit 1. The checks: no tracked file has an uncommitted change, `main` equals `origin/main` after `git fetch origin main`, `orig/default.xbe` has the expected SHA-256, `build/target`, `build/strings.tsv`, `tools/wibo` and `tools/xdk` exist, `sync freshness` reports a level Ghidra project, the ghidra-mcp server answers, `gh auth status` passes, no open `ghidra-writer` issue is assigned, and the gate of `AGENTS.md` ("Every task") passes. The user runs it before the night, and the lead runs it again as its first step.
 - `uv run python -m bodecomp.overnight start 8h`: writes the start time, the limit, the run branch and the counts to `build/overnight/run.json`, and makes and switches to the run branch from `main`. It refuses a checkout with an uncommitted change, and a `main` that differs from `origin/main`. When the branch of the date exists here or on `origin`, such as after a rehearsal on the same day, it adds `-2`, `-3` and so on, and prints the branch it made. When a run is live, it changes nothing and prints the status. So a resumed or compacted session that runs it again keeps the clock.
-- `uv run python -m bodecomp.overnight status`: elapsed and remaining time, batches merged, functions matched and parked since the start, minutes since the last commit on the run branch or the last change to `build/overnight/journal.md`, whichever is later, the open worktrees, and whether the ghidra-mcp server answers. It appends the same numbers as one row to `build/overnight/log.tsv`. At 85 percent of the limit it prints `wrap up: start no new batch`, and at the limit `remaining: 0m`. When neither has come for longer than 30 minutes (`STALL_MINUTES`), it prints `stalled: stop the running matcher, park its open functions, start the next batch`.
+- `uv run python -m bodecomp.overnight status`: elapsed and remaining time, batches merged, functions matched and parked since the start, minutes since the last commit on the run branch or the last change to `build/overnight/journal.md`, whichever is later, the open worktrees, and whether the ghidra-mcp server answers. It appends the same numbers as one row to `build/overnight/log.tsv`. At 85 percent of the limit it prints `wrap up: start no new batch`, and at the limit `remaining: 0m`. When neither has come for longer than 30 minutes (`STALL_MINUTES`), it prints `stalled: stop the running matcher, park its open functions, start the next batch`. The matcher's `build/batch-state.txt` shows which functions are open ("A matcher's worktree").
 - `uv run python -m bodecomp.overnight finish`: runs the gate of `AGENTS.md` ("Every task") and `bodecomp.ledger --check`, prints `gate: pass` or the failing command, marks the pull request ready when the gate passes, prints its URL, and marks the run as ended. The checkout must be on the run branch, with no changed and no untracked file, and `HEAD` must be the head of the pull request, so commit and push the run branch first. Otherwise it prints `gate: fail` with the difference, runs no gate and does not mark the pull request ready. After a repair, the lead commits, pushes and runs `finish` again. It keeps the first end time and records the new gate result. On an ended run, `status` shows the clock at the end and the gate result, and logs no row.
 
 Only the user starts a new run after a run has ended, and the lead does none of these steps, so the journal is kept. The user copies what is needed from `build/overnight/journal.md`, removes the night worktrees with `git worktree remove`, deletes `build/overnight/`, then runs `preflight` and `start` again. `start` and `status` print these steps when `run.json` holds an ended run or cannot be read.
@@ -176,6 +178,7 @@ The lead writes `build/overnight/journal.md`: one line per batch (functions give
 8. **Findings.** The lead writes the `docs/FINDINGS.md` entries from the matcher and reviewer reports into the run branch (ADR-0020).
 9. **Batch size.** As "Matching" says when the run starts.
 10. **The server.** When `status` shows that the server does not answer, start it with `tools/ghidra-mcp-headless.sh`, wait for `check_connection`, and write a journal line. After two failed starts, end the run with `finish`.
+11. **The matcher's state file.** Read the matcher's `build/batch-state.txt` when the matcher is cut off, and before you remove its worktree, as "A matcher's worktree" says.
 
 The run does not write to the Ghidra project: no `ghidra-writer` lock, no `names set`, no `sync apply`, no rebuild and no delink. When `preflight` fails on the Ghidra project, the user rebuilds it before the night.
 
@@ -185,6 +188,43 @@ The run does not write to the Ghidra project: no `ghidra-writer` lock, no `names
 - For a thing that only the user can do or decide (a rebuild, a label change, a name with conflicting evidence), write a journal line that starts with `USER:` and go on with work that does not need it. At `finish` the lead opens one issue labeled `needs-triage` for each `USER:` line. The run changes no state label.
 - A tool failure: one retry, then the documented fix (`papercut find <words>`, `docs/FINDINGS.md`), then skip the batch. A timeout is not a reason to stop.
 - A permission that auto mode blocks: do not try the same action in another form. Write a `USER:` line and take the next batch.
+
+### Turn counts after a rehearsal
+
+`maxTurns` of the `matcher` and the `reviewer` comes from the turns that a rehearsal uses (`docs/research/10-overnight-design.md`, R8 and R10). After each rehearsal, the user runs this command in bash or fish. Replace `SESSION_ID` with the ID of the rehearsal session, which `/status` shows in that session.
+
+    jq -rn 'reduce inputs as $r ({}; (input_filename | sub("[.](meta[.]json|jsonl)$"; "")) as $agent
+      | if input_filename | endswith(".meta.json") then .[$agent].meta = $r
+        elif $r.type == "assistant" and ($r.message.model != "<synthetic>" or $r.isVirtual) then .[$agent].ids[$r.message.id] = true
+          | if $r.message.model != "<synthetic>" then .[$agent].replies[$r.message.id] = true else . end
+        else . end)
+      | .[] | select(.meta.agentType == "matcher" or .meta.agentType == "reviewer")
+      | [.meta.agentType, .meta.description, (.replies | length), (.ids | length)] | @tsv' ~/.claude/projects/*/SESSION_ID/subagents/agent-*.json*
+
+It prints one line for each `matcher` and `reviewer` subagent: the agent type, the description, `replies` and `all IDs`.
+
+Every unattended run, and every rehearsal, runs in Code Mode (the user's decision, 2026-11-25). Start it as an interactive session, as at the top of "An unattended run", with `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`. The repo does not set this variable, so it comes from the settings or the shell of the machine. The variable alone does not prove that a subagent used Code Mode: in the test below, some subagents did not get the Code Mode tool while the shell had the variable set. So after each rehearsal, check that `all IDs` is higher than `replies` for every `matcher` and `reviewer` that used tools. When the two are equal, read the subagent's transcript, and do not use its count until the transcript shows that it ran in Code Mode (a `REPL` call, or records marked `isVirtual`). A rehearsal in which a `matcher` or a `reviewer` ran without Code Mode does not count.
+
+- `replies` counts the unique message IDs of the model's replies. It leaves out the records whose model is `<synthetic>`.
+- `all IDs` counts the unique message IDs of the replies and of the `assistant` records marked `isVirtual`. It leaves out every other `<synthetic>` record. An API error can write such a record, which would make `all IDs` higher than `replies` without Code Mode. In Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE`), Claude writes JavaScript that makes tool calls. In the transcripts of Claude Code 2.1.331 that were checked on 2026-11-25, each of those calls has its own record, marked `isVirtual`, with the model `<synthetic>` and its own message ID. So `all IDs` is much larger than `replies` there. In a transcript with no `isVirtual` records, the two numbers are equal.
+
+Use `replies` for `maxTurns`. A test on 2026-11-25 with Claude Code 2.1.332 showed that the limit counts the model's replies, and not the tool calls that the JavaScript makes. A test subagent had `maxTurns: 3` and followed a chain of 12 files, in which each file names the next one. One run for each case:
+
+| Case | `replies` | `all IDs` | Result |
+|---|---|---|---|
+| Code Mode, all reads in one script | 2 | 14 | Read all 12 files and finished |
+| Code Mode, one read in each reply | 3 | 6 | Stopped at the limit after 3 reads |
+| No Code Mode, one read in each reply | 3 | 3 | Stopped at the limit after 3 reads |
+
+In the second case, the third reply made two direct tool calls (`REPL` and `Poll`) and was one reply. Both stopped subagents returned a note about the limit and no report, so a matcher that hits its limit leaves `build/batch-state.txt` as its record. Not tested: how the count works when a stopped subagent is resumed. The test did not run on 2.1.331, the version of the transcripts above.
+
+What the docs and the transcripts say, checked on 2026-11-25:
+
+- The Claude Code docs say that `maxTurns` is the ["Maximum number of agentic turns before the subagent stops"](https://code.claude.com/docs/en/sub-agents#frontmatter-reference). The Agent SDK reference calls these turns ["API round-trips"](https://code.claude.com/docs/en/agent-sdk/typescript#agentdefinition). The page on the agent loop says to [count each turn with tool calls, plus one for the final text-only response](https://code.claude.com/docs/en/agent-sdk/agent-loop#turns-and-messages).
+- Observed in 61 Code Mode transcripts of both agents: each reply has its own request ID, and no two replies share one.
+- The pages above and the [Code Mode page](https://code.claude.com/docs/en/code-mode) do not say whether a tool call from the JavaScript counts as a turn. They also do not say how the count of a resumed subagent works.
+
+The docs say that the [transcript format is internal](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored) and can change in any release, so check the output again after an update of Claude Code. Claude Code deletes old transcripts, after 30 days by default.
 
 ## Trivial functions
 
