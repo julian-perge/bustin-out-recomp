@@ -306,39 +306,18 @@ def test_workflow_links_the_ignored_inputs_into_a_matcher_worktree():
         assert f'ln -s "$PWD/{path}" "$wt/{path}"' in section, path
 
 
-def and_chain(command):
-    """Split a shell command at each && into one argument tuple per step."""
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
-    lexer.whitespace_split = True
-    steps = [[]]
-    for token in lexer:
-        if token == "&&":
-            steps.append([])
-        else:
-            steps[-1].append(token)
-    return [tuple(step) for step in steps]
-
-
-def every_task_command():
-    commands = re.findall(r"`([^`]*&&[^`]*)`", section(read("AGENTS.md"), "Every task"))
-    assert len(commands) == 1, commands
-    return and_chain(commands[0])
-
-
-def checks_command():
-    text = section(read("docs/agents/workflow.md"), "Checks")
-    items = [line for line in text.splitlines() if line.startswith(("- ", "* "))]
-    assert len(items) == 1, items
-    item = re.fullmatch(r"- `([^`]+)`", items[0])
-    assert item, items[0]
-    argv = shlex.split(item[1])
-    assert len(argv) == 3 and argv[:2] == ["bash", "-c"], argv
-    return and_chain(argv[2])
+def gate_chain():
+    return " && ".join(shlex.join(command) for command in GATE)
 
 
 def test_every_task_command_is_the_overnight_gate():
-    assert every_task_command() == list(GATE)
+    text = section(read("AGENTS.md"), "Every task")
+    assert re.findall(r"`([^`]*&&[^`]*)`", text) == [gate_chain()]
 
 
 def test_land_check_is_the_overnight_gate():
-    assert checks_command() == list(GATE)
+    text = section(read("docs/agents/workflow.md"), "Checks")
+    # `land` also runs an indented item, so the test reads every list line.
+    list_line = re.compile(r"\s*([-*+]|\d+[.)])\s")
+    items = [line for line in text.splitlines() if list_line.match(line)]
+    assert items == [f"- `bash -c '{gate_chain()}'`"]
