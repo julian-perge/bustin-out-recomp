@@ -165,6 +165,7 @@ struct S_001A72B0
 };
 
 // 0x001A72B0
+// parked: source shape
 void S_001A72B0::FUN_001a72b0()
 {
     S_001A72B0_target* t = (S_001A72B0_target*)((char*)this + 4 + vb[2]);
