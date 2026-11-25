@@ -175,7 +175,7 @@ A test, not a rule. The user starts the same prompt with `1h` in place of `8h` w
 1. No permission prompt appeared. Each prompt that did appear becomes an allow rule in `config/overnight-settings.json`, or a rule of R7.
 2. At least one batch went through matcher, reviewer, gate, merge and push.
 3. `status` printed `wrap up`, then `finish` printed `gate: pass`, and the goal ended after it. `status` does not have to print `remaining: 0m`, because the loop starts no new batch at `wrap up`. A run that reaches `remaining: 0m` and then finishes in the same way passes too (the user's decision, 2026-11-25).
-4. `log.tsv` gives the minutes per batch and the journal gives the tokens per batch. These two numbers set the stall limit of R2 and `maxTurns` of R8, and they say how many batches fit in 8 hours.
+4. `log.tsv` gives the minutes per batch and the journal gives the tokens per batch. The minutes set the stall limit of R2, and the two numbers say how many batches fit in 8 hours. `maxTurns` of R8 comes from the turn counts that `docs/WORKFLOW.md` ("Turn counts after a rehearsal") describes.
 
 A second rehearsal: `/compact` by hand in the middle of a batch, to confirm that the lead continues from the hook line and the journal. A third: stop the session with Ctrl+C, `claude --continue --permission-mode auto --settings config/overnight-settings.json`, and confirm that the goal is restored and `start` keeps the old clock.
 

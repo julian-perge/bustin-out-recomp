@@ -1,6 +1,9 @@
 import re
+import shlex
 import subprocess
 from pathlib import Path, PurePosixPath
+
+from bodecomp.overnight import GATE
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -301,3 +304,22 @@ def test_workflow_links_the_ignored_inputs_into_a_matcher_worktree():
     links = ["build/target", "build/strings.tsv", "orig", "tools/wibo", "tools/xdk"]
     for path in links:
         assert f'ln -s "$PWD/{path}" "$wt/{path}"' in section, path
+
+
+def gate_chain():
+    return " && ".join(shlex.join(command) for command in GATE)
+
+
+def test_every_task_command_is_the_overnight_gate():
+    text = section(read("AGENTS.md"), "Every task")
+    assert re.findall(r"`([^`]*)`", text) == [gate_chain()]
+
+
+def test_land_check_is_the_overnight_gate():
+    text = section(read("docs/agents/workflow.md"), "Checks")
+    # `land` also runs an indented item, so the test reads every list line.
+    # A fence can hide a heading that ends `section` early, but not for `land`.
+    assert "```" not in text and "~~~" not in text
+    list_line = re.compile(r"\s*([-*+]|\d+[.)])\s")
+    items = [line for line in text.splitlines() if list_line.match(line)]
+    assert items == [f"- `bash -c '{gate_chain()}'`"]

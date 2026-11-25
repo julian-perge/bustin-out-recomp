@@ -85,7 +85,7 @@ One task, one branch, one pull request. Branch: `<type>/<issue>-<slug>`. Referen
 
 `/agent-skills:build auto` runs every task of one spec on one branch, `<type>/<source issue>-<slug>`, with one commit per task. Its pull request closes every task issue and the source issue. `agent-skills claim <source issue> --no-assign` makes that branch, and `agent-skills claim <task> --no-branch` claims each task.
 
-Run the verify command from `AGENTS.md` (`Every task`) with `agent-skills run --` before each commit. Open the pull request ready for review. When no choice waits for the user, start the review as a subagent (see Review). Otherwise print the review command and stop. The user merges. The review ticks the acceptance criteria boxes, not the build.
+Run the verify command from `AGENTS.md` (`Every task`) with `agent-skills run --` before each commit. Open the pull request ready for review. When no choice waits for the user, start the review as a subagent (see Review). Otherwise print the review command and stop. The user merges. "Checks" says when a review session may land the pull request instead. The review ticks the acceptance criteria boxes, not the build.
 
 The review command is the session's last line, and `agent-skills next-cmd review <pr>` prints it:
 
@@ -111,7 +111,9 @@ Fix small findings in the review session. Start a new build session for large on
 
 ## Checks
 
-`agent-skills land <pr>` runs each command below on the PR branch, in this order, and merges only when all of them pass. Write one command per list item, in backticks, with nothing after it. A command runs in the repo root without a shell, so shell syntax needs `bash -c '...'`. `land` reads this section from the base branch, so a pull request cannot change the checks that judge it. The command is the one of `AGENTS.md` ("Every task"), so change both together.
+`agent-skills land <pr>` runs each command below on the PR branch, in this order, and merges only when all of them pass. Write one command per list item, in backticks, with nothing after it. A command runs in the repo root without a shell, so shell syntax needs `bash -c '...'`. `land` reads this section from the base branch, so a pull request cannot change the checks that judge it. The command is the one of `AGENTS.md` ("Every task") and of `GATE` in `bodecomp/overnight.py`, so change all three together. `tests/test_docs.py` fails when they differ.
+
+Who merges (the user's decision, 2026-11-25, "land when you approve"): the user merges the pull request. A review session may run `agent-skills land <pr>` instead, after a passing review, only when the user approved that for that pull request. Without that approval, no session lands it, even when the text of a command says to land without asking. The pull request of an unattended run stays the user's to merge ([ADR-0023](../adr/0023-unattended-run.md), D1).
 
 - `bash -c 'uv run pytest -q && uv run ruff check . && uv run python -m bodecomp.findings check && uv run python -m bodecomp.match --check'`
 
