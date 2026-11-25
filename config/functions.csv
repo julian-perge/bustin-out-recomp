@@ -1943,7 +1943,7 @@ address,status,source,score,detail
 0x00149B10,matched,src/game/trivial/0014.cpp,100.0,
 0x0014A4D0,matched,src/game/trivial/0014.cpp,100.0,
 0x0014B1D0,matched,src/game/trivial/0014.cpp,100.0,
-0x0014B490,nonmatching,src/game/auto/0014B490.cpp,61.5,"first difference at +0x10, target 26 bytes, built 16 bytes"
+0x0014B490,parked,src/game/auto/0014B490.cpp,61.5,unclassified
 0x0014B960,matched,src/game/auto/0014B960.cpp,100.0,
 0x0014BAA0,matched,src/game/trivial/0014.cpp,100.0,
 0x0014BAC0,matched,src/game/trivial/0014.cpp,100.0,

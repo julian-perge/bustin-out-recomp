@@ -7,6 +7,7 @@ struct S_0014B490
 };
 
 // 0x0014B490
+// parked: unclassified
 S_0014B490::S_0014B490()
 {
     a = 0;
