@@ -206,11 +206,21 @@ It prints one line for each `matcher` and `reviewer` subagent: the agent type, t
 - `replies` counts the unique message IDs of the model's replies. It leaves out the records whose model is `<synthetic>`.
 - `all IDs` counts the unique message IDs of all `assistant` records. In Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE`), Claude writes JavaScript that makes tool calls. In the transcripts of Claude Code 2.1.331 that were checked on 2026-11-25, each of those calls has its own record, marked `isVirtual`, with the model `<synthetic>` and its own message ID. So `all IDs` is much larger than `replies` there. In a transcript with no `<synthetic>` records, the two numbers are equal.
 
-Use `replies` for `maxTurns`. This is an inference, and these are its parts, checked on 2026-11-25:
+Use `replies` for `maxTurns`. A test on 2026-11-25 with Claude Code 2.1.332 showed that the limit counts the model's replies, and not the tool calls that the JavaScript makes. A test subagent had `maxTurns: 3` and followed a chain of 12 files, in which each file names the next one. One run for each case:
+
+| Case | `replies` | `all IDs` | Result |
+|---|---|---|---|
+| Code Mode, all reads in one script | 2 | 14 | Read all 12 files and finished |
+| Code Mode, one read in each reply | 3 | 6 | Stopped at the limit after 3 reads |
+| No Code Mode, one read in each reply | 3 | 3 | Stopped at the limit after 3 reads |
+
+In the second case, the third reply made two direct tool calls (`REPL` and `Poll`) and was one reply. Both stopped subagents returned a note about the limit and no report, so a matcher that hits its limit leaves `build/batch-state.txt` as its record. Not tested: how the count works when a stopped subagent is resumed. The test did not run on 2.1.331, the version of the transcripts above.
+
+What the docs and the transcripts say, checked on 2026-11-25:
 
 - The Claude Code docs say that `maxTurns` is the ["Maximum number of agentic turns before the subagent stops"](https://code.claude.com/docs/en/sub-agents#frontmatter-reference). The Agent SDK reference calls these turns ["API round-trips"](https://code.claude.com/docs/en/agent-sdk/typescript#agentdefinition). The page on the agent loop says to [count each turn with tool calls, plus one for the final text-only response](https://code.claude.com/docs/en/agent-sdk/agent-loop#turns-and-messages).
 - Observed in 72 Code Mode transcripts of both agents: each reply has its own request ID, and no two replies share one.
-- Not verified: no run has hit a `maxTurns` limit to compare the limit with either count. The pages above and the [Code Mode page](https://code.claude.com/docs/en/code-mode) do not say whether a tool call from the JavaScript counts as a turn. They also do not say how the count of a resumed subagent works.
+- The pages above and the [Code Mode page](https://code.claude.com/docs/en/code-mode) do not say whether a tool call from the JavaScript counts as a turn. They also do not say how the count of a resumed subagent works.
 
 The docs say that the [transcript format is internal](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored) and can change in any release, so check the output again after an update of Claude Code. Claude Code deletes old transcripts, after 30 days by default.
 
