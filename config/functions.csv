@@ -2651,7 +2651,7 @@ address,status,source,score,detail
 0x00193140,matched,src/game/auto/00193140.cpp,100.0,
 0x00193160,matched,src/game/trivial/0019.cpp,100.0,
 0x001933D0,matched,src/game/trivial/0019.cpp,100.0,
-0x001948F0,parked,src/game/auto/001948F0.cpp,0.0,source shape
+0x001948F0,parked,src/game/auto/001948F0.cpp,0.0,unclassified
 0x00194910,matched,src/game/trivial/0019.cpp,100.0,
 0x00194920,matched,src/game/trivial/0019.cpp,100.0,
 0x00194930,matched,src/game/trivial/0019.cpp,100.0,
