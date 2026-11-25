@@ -36,8 +36,8 @@ A matched function keeps its `auto` name when its source uses placeholder names 
 
 | Status | Functions | Share | Bytes | Share |
 |---|---:|---:|---:|---:|
-| `matched` | 3,852 | 20.4% | 32,874 | 1.7% |
+| `matched` | 3,927 | 20.8% | 34,751 | 1.8% |
 | `nonmatching` | 0 | 0.0% | 0 | 0.0% |
-| `parked` | 39 | 0.2% | 1,234 | 0.1% |
+| `parked` | 44 | 0.2% | 1,359 | 0.1% |
 | `error` | 0 | 0.0% | 0 | 0.0% |
-| `open` | 15,007 | 79.4% | 1,911,641 | 98.2% |
+| `open` | 14,927 | 79.0% | 1,909,639 | 98.1% |
