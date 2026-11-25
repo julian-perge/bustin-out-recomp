@@ -109,6 +109,12 @@ Every pull request merges with a merge commit, never squash or rebase. A squash 
 
 Fix small findings in the review session. Start a new build session for large ones.
 
+## Checks
+
+`agent-skills land <pr>` runs each command below on the PR branch, in this order, and merges only when all of them pass. Write one command per list item, in backticks, with nothing after it. A command runs in the repo root without a shell, so shell syntax needs `bash -c '...'`. `land` reads this section from the base branch, so a pull request cannot change the checks that judge it. The command is the one of `AGENTS.md` ("Every task"), so change both together.
+
+- `bash -c 'uv run pytest -q && uv run ruff check . && uv run python -m bodecomp.findings check && uv run python -m bodecomp.match --check'`
+
 ## Reports
 
 Post every decision the user makes in a session, and every guess and gap you accepted, in one decision comment with `agent-skills decide`. Post it on the task issue, or on the source issue when later tasks need it. Mark guesses as guesses. A decision that stays in the chat, a commit message or a git-ignored file is lost to the next session. Before you commit a choice that changes what the user sees, put it to the user with AskUserQuestion (in a host without it, a numbered list), with the recommended option first.
